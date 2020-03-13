@@ -32,7 +32,8 @@ def test_startup_time(test_microvm_with_api):
 
     # Configure metrics.
     metrics_fifo_path = os.path.join(microvm.path, 'metrics_fifo')
-    metrics_fifo = log_tools.Fifo(metrics_fifo_path)
+    flags = os.O_RDONLY | os.O_NONBLOCK
+    metrics_fifo = log_tools.Fifo(metrics_fifo_path, flags)
 
     response = microvm.metrics.put(
         metrics_fifo=microvm.create_jailed_resource(metrics_fifo.path)
