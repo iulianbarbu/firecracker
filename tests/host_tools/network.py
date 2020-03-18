@@ -223,7 +223,7 @@ class UniqueIPv4Generator(mpsing.MultiprocessSingleton):
         self.next_valid_subnet_id += self.subnet_max_ip_count
         return next_available_subnet
 
-    @mpsing.ipcmethod
+    #@mpsing.ipcmethod
     def get_next_available_ips(self, count):
         """Return a count of unique IPs.
 

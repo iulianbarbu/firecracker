@@ -543,7 +543,6 @@ impl Net {
     pub fn process_tap_rx_event(&mut self) {
         METRICS.net.rx_tap_event_count.inc();
         if self.queues[RX_INDEX].is_empty(&self.mem) {
-            error!("The RX queue is empty, there is no available buffer.");
             METRICS.net.event_fails.inc();
             return;
         }

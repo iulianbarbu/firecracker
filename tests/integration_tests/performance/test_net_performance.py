@@ -103,8 +103,8 @@ def parse_iperf_tcp_result(result, mode, bw):
     }
 
 
-@pytest.mark.timeout(3600)
-@pytest.mark.env("benchmark")
+#@pytest.mark.timeout(3600)
+#@pytest.mark.env("benchmark")
 def test_block_device_performance(test_microvm_with_ssh, network_config):
     """Execute net device emulation benchmarking scenarios."""
     microvm = test_microvm_with_ssh
@@ -118,21 +118,23 @@ def test_block_device_performance(test_microvm_with_ssh, network_config):
     metrics_fifo = log_tools.Fifo(metrics_fifo_path)
     response = microvm.logger.put(
         log_fifo=microvm.create_jailed_resource(log_fifo.path),
-        metrics_fifo=microvm.create_jailed_resource(metrics_fifo.path)
+        metrics_fifo=microvm.create_jailed_resource(metrics_fifo.path),
     )
     assert microvm.api_session.is_status_no_content(response.status_code)
-
+    
+    print("Logger configured...")
     spawn_host_iperf(microvm.jailer.netns_cmd_prefix())
-
+    print("Host iperf spawned...")
     _tap, host_ip, _ = microvm.ssh_network_config(network_config, '1')
-
+    print("SSH network config set...")
     microvm.start()
-
+    print("MicroVM has started...")
     results = []
 
     for protocol in PROTOCOL_OPTIONS:
         for bw in BANDWIDTHS[protocol]:
             for mode in MODES:
+                print("Protocol (" + str(protocol) + ") - bw (" + str(bw) + ") - mode (" + str(mode) + ")")
                 cmd = '{} -c {} -t{} -f MBytes -J -b {}M {} {} -w {}M'.format(
                     IPERF,
                     host_ip,
@@ -142,7 +144,9 @@ def test_block_device_performance(test_microvm_with_ssh, network_config):
                     PROTOCOL_OPTIONS[protocol],
                     SOCKET_BUFFER_SIZE
                 )
-
+                print("-----")
+                print(cmd)
+                print("-----")
                 iperf_out = spawn_guest_iperf(microvm, cmd)
                 result = None
                 if protocol == "udp":
