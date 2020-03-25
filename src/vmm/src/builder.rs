@@ -27,6 +27,7 @@ use vm_memory::{Bytes, GuestAddress, GuestMemoryMmap};
 use vmm_config;
 use vmm_config::boot_source::BootConfig;
 use vmm_config::drive::BlockDeviceConfigs;
+use vmm_config::mmds::{MmdsConfig, MmdsConfigError};
 use vmm_config::net::NetworkInterfaceConfigs;
 use vmm_config::vsock::VsockDeviceConfig;
 use vstate::{KvmContext, Vcpu, VcpuConfig, Vm};
@@ -78,6 +79,8 @@ pub enum StartMicrovmError {
     RegisterNetDevice(device_manager::mmio::Error),
     /// Cannot initialize a MMIO Vsock Device or add a device to the MMIO Bus.
     RegisterVsockDevice(device_manager::mmio::Error),
+    /// Error while trying to use mmds configuration to set up the service.
+    MmdsConfig(MmdsConfigError),
 }
 
 /// It's convenient to automatically convert `kernel::cmdline::Error`s
@@ -88,10 +91,16 @@ impl std::convert::From<kernel::cmdline::Error> for StartMicrovmError {
     }
 }
 
+impl std::convert::From<MmdsConfigError> for StartMicrovmError {
+    fn from(e: MmdsConfigError) -> StartMicrovmError {
+        StartMicrovmError::MmdsConfig(e)
+    }
+}
+
 impl Display for StartMicrovmError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         use self::StartMicrovmError::*;
-        match *self {
+        match self {
             CreateBlockDevice(ref err) => write!(
                 f,
                 "Unable to seek the block device backing file due to invalid permissions or \
@@ -181,6 +190,7 @@ impl Display for StartMicrovmError {
                     err_msg
                 )
             }
+            MmdsConfig(err) => write!(f, "{}", err.to_string()),
         }
     }
 }
@@ -355,7 +365,13 @@ pub fn build_microvm(
     };
 
     attach_block_devices(&mut vmm, &vm_resources.block, event_manager)?;
-    attach_net_devices(&mut vmm, &vm_resources.network_interface, event_manager)?;
+    attach_net_devices(
+        &mut vmm,
+        &vm_resources.network_interface,
+        vm_resources.mmds_config.as_ref(),
+        event_manager,
+    )?;
+
     if let Some(vsock) = vm_resources.vsock.as_ref() {
         attach_vsock_device(&mut vmm, vsock, event_manager)?;
     }
@@ -735,6 +751,7 @@ fn attach_block_devices(
 fn attach_net_devices(
     vmm: &mut Vmm,
     network_ifaces: &NetworkInterfaceConfigs,
+    mmds_config: Option<&MmdsConfig>,
     event_manager: &mut EventManager,
 ) -> std::result::Result<(), StartMicrovmError> {
     use self::StartMicrovmError::*;
@@ -755,6 +772,12 @@ fn attach_net_devices(
             .map_err(CreateRateLimiter)?;
 
         let tap = cfg.open_tap().map_err(|_| NetDeviceNotConfigured)?;
+        let mmds_ipv4_addr_pool = if let Some(cfg) = mmds_config {
+            cfg.ipv4_addr_pool()?
+        } else {
+            Vec::new()
+        };
+
         let net_device = Arc::new(Mutex::new(
             devices::virtio::net::Net::new_with_tap(
                 tap,
@@ -762,6 +785,7 @@ fn attach_net_devices(
                 vmm.guest_memory().clone(),
                 rx_rate_limiter.unwrap_or_default(),
                 tx_rate_limiter.unwrap_or_default(),
+                mmds_ipv4_addr_pool,
                 allow_mmds_requests,
             )
             .map_err(CreateNetDevice)?,
@@ -1114,14 +1138,22 @@ pub mod tests {
         let mut network_interface_configs = NetworkInterfaceConfigs::new();
         network_interface_configs.insert(network_interface).unwrap();
 
-        assert!(
-            attach_net_devices(&mut vmm, &network_interface_configs, &mut event_manager).is_ok()
-        );
+        assert!(attach_net_devices(
+            &mut vmm,
+            &network_interface_configs,
+            None,
+            &mut event_manager
+        )
+        .is_ok());
 
         // We can not attach it once more.
-        assert!(
-            attach_net_devices(&mut vmm, &network_interface_configs, &mut event_manager).is_err()
-        );
+        assert!(attach_net_devices(
+            &mut vmm,
+            &network_interface_configs,
+            None,
+            &mut event_manager
+        )
+        .is_err());
     }
 
     #[test]

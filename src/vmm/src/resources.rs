@@ -13,6 +13,7 @@ use vmm_config::drive::*;
 use vmm_config::logger::{init_logger, LoggerConfig, LoggerConfigError};
 use vmm_config::machine_config::{VmConfig, VmConfigError};
 use vmm_config::metrics::{init_metrics, MetricsConfig, MetricsConfigError};
+use vmm_config::mmds::MmdsConfig;
 use vmm_config::net::*;
 use vmm_config::vsock::*;
 use vstate::VcpuConfig;
@@ -55,6 +56,8 @@ pub struct VmmConfig {
     metrics: Option<MetricsConfig>,
     #[serde(rename = "vsock")]
     vsock_device: Option<VsockDeviceConfig>,
+    #[serde(rename = "mmds-config")]
+    mmds_config: Option<MmdsConfig>,
 }
 
 /// A data structure that encapsulates the device configurations
@@ -71,6 +74,8 @@ pub struct VmResources {
     pub network_interface: NetworkInterfaceConfigs,
     /// The configurations for vsock devices.
     pub vsock: Option<VsockDeviceConfig>,
+    /// The configuration for `MmdsNetworkStack`.
+    pub mmds_config: Option<MmdsConfig>,
 }
 
 impl VmResources {
@@ -111,6 +116,10 @@ impl VmResources {
         }
         if let Some(vsock_config) = vmm_config.vsock_device {
             resources.set_vsock_device(vsock_config);
+        }
+
+        if let Some(mmds_config) = vmm_config.mmds_config {
+            resources.set_mmds_config(mmds_config);
         }
         Ok(resources)
     }
@@ -286,6 +295,11 @@ impl VmResources {
     pub fn set_vsock_device(&mut self, config: VsockDeviceConfig) {
         self.vsock = Some(config);
     }
+
+    /// Settter for mmds config.
+    pub fn set_mmds_config(&mut self, config: MmdsConfig) {
+        self.mmds_config = Some(config);
+    }
 }
 
 #[cfg(test)]
@@ -364,6 +378,7 @@ mod tests {
             block: default_block_cfgs(),
             network_interface: default_net_cfgs(),
             vsock: None,
+            mmds_config: None,
         }
     }
 

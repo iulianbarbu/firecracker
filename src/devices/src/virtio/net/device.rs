@@ -18,6 +18,7 @@ use rate_limiter::{RateLimiter, TokenBucket, TokenType};
 #[cfg(not(test))]
 use std::io::Read;
 use std::io::Write;
+use std::net::Ipv4Addr;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -98,6 +99,7 @@ impl Net {
         mem: GuestMemoryMmap,
         rx_rate_limiter: RateLimiter,
         tx_rate_limiter: RateLimiter,
+        mmds_ipv4_addr_pool: Vec<Ipv4Addr>,
         allow_mmds_requests: bool,
     ) -> Result<Self> {
         // Set offload flags to match the virtio features below.
@@ -139,7 +141,7 @@ impl Net {
         let queues = QUEUE_SIZES.iter().map(|&s| Queue::new(s)).collect();
 
         let mmds_ns = if allow_mmds_requests {
-            Some(MmdsNetworkStack::new_with_defaults())
+            Some(MmdsNetworkStack::new_with_defaults(mmds_ipv4_addr_pool))
         } else {
             None
         };
@@ -710,6 +712,7 @@ mod tests {
     use logger::{Metric, METRICS};
     use polly::event_manager::{EventManager, Subscriber};
     use rate_limiter::{RateLimiter, TokenBucket, TokenType};
+    use std::str::FromStr;
     use utils::epoll::{EpollEvent, EventSet};
     use utils::net::Tap;
     use virtio_gen::virtio_net::{
@@ -765,6 +768,7 @@ mod tests {
                 Net::default_guest_memory(),
                 RateLimiter::default(),
                 RateLimiter::default(),
+                vec![Ipv4Addr::from_str("169.254.169.254").unwrap()],
                 true,
             )
             .unwrap();

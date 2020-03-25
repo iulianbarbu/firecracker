@@ -18,6 +18,7 @@ use vmm_config::drive::{BlockDeviceConfig, DriveError};
 use vmm_config::logger::{LoggerConfig, LoggerConfigError};
 use vmm_config::machine_config::{VmConfig, VmConfigError};
 use vmm_config::metrics::{MetricsConfig, MetricsConfigError};
+use vmm_config::mmds::{MmdsConfig, MmdsConfigError};
 use vmm_config::net::{
     NetworkInterfaceConfig, NetworkInterfaceError, NetworkInterfaceUpdateConfig,
 };
@@ -66,6 +67,8 @@ pub enum VmmAction {
     /// Update a network interface, after microVM start. Currently, the only updatable properties
     /// are the RX and TX rate limiters.
     UpdateNetworkInterface(NetworkInterfaceUpdateConfig),
+    /// Set the MMDS configuration.
+    SetMmdsConfiguration(MmdsConfig),
 }
 
 /// Wrapper for all errors associated with VMM actions.
@@ -94,6 +97,8 @@ pub enum VmmActionError {
     StartMicrovm(StartMicrovmError),
     /// The action `set_vsock_device` failed because of bad user input.
     VsockConfig(VsockError),
+    /// The action `set_mmds_config` failed because of bad user input.
+    MmdsConfig(MmdsConfigError),
 }
 
 impl Display for VmmActionError {
@@ -121,6 +126,7 @@ impl Display for VmmActionError {
                 }
                 StartMicrovm(err) => err.to_string(),
                 VsockConfig(err) => err.to_string(),
+                MmdsConfig(err) => err.to_string(),
             }
         )
     }
@@ -142,7 +148,6 @@ pub struct PrebootApiController<'a> {
     firecracker_version: String,
     vm_resources: &'a mut VmResources,
     event_manager: &'a mut EventManager,
-
     built_vmm: Option<Arc<Mutex<Vmm>>>,
 }
 
@@ -244,6 +249,10 @@ impl<'a> PrebootApiController<'a> {
                 .set_vm_config(&machine_config_body)
                 .map(|_| VmmData::Empty)
                 .map_err(VmmActionError::MachineConfig),
+            SetMmdsConfiguration(mmds_config) => {
+                self.vm_resources.set_mmds_config(mmds_config);
+                Ok(VmmData::Empty)
+            }
             UpdateBlockDevicePath(drive_id, path_on_host) => self
                 .vm_resources
                 .update_block_device_path(drive_id, path_on_host)
@@ -304,6 +313,7 @@ impl RuntimeApiController {
             | InsertBlockDevice(_)
             | InsertNetworkDevice(_)
             | SetVsockDevice(_)
+            | SetMmdsConfiguration(_)
             | SetVmConfiguration(_) => Err(VmmActionError::OperationNotSupportedPostBoot),
             StartMicroVm => Err(VmmActionError::StartMicrovm(
                 StartMicrovmError::MicroVMAlreadyRunning,

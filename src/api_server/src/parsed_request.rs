@@ -20,6 +20,7 @@ use request::vsock::parse_put_vsock;
 use ApiServer;
 
 use vmm::rpc_interface::{VmmAction, VmmActionError};
+use vmm::vmm_config::mmds::MmdsConfigError;
 
 #[allow(clippy::large_enum_variant)]
 pub enum ParsedRequest {
@@ -56,7 +57,7 @@ impl ParsedRequest {
             (Method::Put, "logger", Some(body)) => parse_put_logger(body),
             (Method::Put, "machine-config", Some(body)) => parse_put_machine_config(body),
             (Method::Put, "metrics", Some(body)) => parse_put_metrics(body),
-            (Method::Put, "mmds", Some(body)) => parse_put_mmds(body),
+            (Method::Put, "mmds", Some(body)) => parse_put_mmds(body, path_tokens.get(1)),
             (Method::Put, "network-interfaces", Some(body)) => {
                 parse_put_net(body, path_tokens.get(1))
             }
@@ -165,11 +166,13 @@ pub enum Error {
     InvalidPathMethod(String, Method),
     // An error occurred when deserializing the json body of a request.
     SerdeJson(serde_json::Error),
+    // An error occured while parsing IPv4 address.
+    MmdsConfig(MmdsConfigError),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
+        match self {
             Error::Generic(_, ref desc) => write!(f, "{}", desc),
             Error::EmptyID => write!(f, "The ID cannot be empty."),
             Error::InvalidID => write!(
@@ -187,6 +190,11 @@ impl std::fmt::Display for Error {
                 "An error occurred when deserializing the json body of a request: {}.",
                 e
             ),
+            Error::MmdsConfig(err) => write!(
+                f,
+                "An error occurred when deserializing the json body of a request: {}.",
+                err
+            ),
         }
     }
 }
@@ -200,6 +208,7 @@ impl Into<Response> for Error {
             Error::EmptyID
             | Error::InvalidID
             | Error::InvalidPathMethod(_, _)
+            | Error::MmdsConfig(_)
             | Error::SerdeJson(_) => ApiServer::json_response(StatusCode::BadRequest, msg),
         }
     }
