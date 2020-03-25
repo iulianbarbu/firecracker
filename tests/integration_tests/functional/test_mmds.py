@@ -9,13 +9,126 @@ def _assert_out(stdout, stderr, expected):
     assert stderr.read().decode('utf-8') == ''
     assert stdout.read().decode('utf-8') == expected
 
-
 # Used when the output consists of a set of lines in no particular order, and
 # thus may differ from one run to another.
 def _assert_out_multiple(stdout, stderr, lines):
     assert stderr.read().decode('utf-8') == ''
     out = stdout.read().decode('utf-8')
     assert sorted(out.split('\n')) == sorted(lines)
+
+
+def test_custom_ipv4_support_config(test_microvm_with_ssh, network_config):
+    """Test the API for MMDS custom ipv4 support."""
+    test_microvm = test_microvm_with_ssh
+    test_microvm.spawn()
+
+    response = test_microvm.mmds.get()
+    assert test_microvm.api_session.is_status_ok(response.status_code)
+    assert response.json() == {}
+
+    data_store = {
+        'latest': {
+            'meta-data': {
+                'ami-id': 'ami-12345678',
+                'reservation-id': 'r-fea54097',
+                'local-hostname': 'ip-10-251-50-12.ec2.internal',
+                'public-hostname': 'ec2-203-0-113-25.compute-1.amazonaws.com',
+                'network': {
+                    'interfaces': {
+                        'macs': {
+                            '02:29:96:8f:6a:2d': {
+                                'device-number': '13345342',
+                                'local-hostname': 'localhost',
+                                'subnet-id': 'subnet-be9b61d'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    response = test_microvm.mmds.put(json=data_store)
+    assert test_microvm.api_session.is_status_no_content(response.status_code)
+
+    response = test_microvm.mmds.get()
+    assert test_microvm.api_session.is_status_ok(response.status_code)
+    assert response.json() == data_store
+
+    config_data = {
+        'ipv4_address_pool': []
+    }
+    response = test_microvm.mmds.put_config(json=config_data)
+    assert test_microvm.api_session.is_status_bad_request(response.status_code)
+
+    config_data = {
+        'ipv4_address_pool': [
+            "169.254.169.250",
+            "169.254.169.251",
+            "169.254.169.252",
+            "169.254.169.253",
+        ]
+    }
+    response = test_microvm.mmds.put_config(json=config_data)
+    assert test_microvm.api_session.is_status_no_content(response.status_code)
+
+    test_microvm.basic_config(vcpu_count=1)
+    _tap = test_microvm.ssh_network_config(
+         network_config,
+         '1',
+         allow_mmds_requests=True
+    )
+
+    test_microvm.start()
+    ssh_connection = net_tools.SSHConnection(test_microvm.ssh_config)
+
+    response = test_microvm.mmds.put_config(json=config_data)
+    assert test_microvm.api_session.is_status_bad_request(response.status_code)
+
+    for i in range(4):
+        cmd = 'ip route add 169.254.169.25' + str(i) + ' dev eth0'
+        _, stdout, stderr = ssh_connection.execute_command(cmd)
+        _assert_out(stdout, stderr, '')
+
+        pre = 'curl -s http://169.254.169.25' + str(i) + '/'
+
+        cmd = pre + 'latest/meta-data/ami-id'
+        _, stdout, stderr = ssh_connection.execute_command(cmd)
+        _assert_out(stdout, stderr, 'ami-12345678')
+
+        # The request is still valid if we append a
+        # trailing slash to a leaf node.
+        cmd = pre + 'latest/meta-data/ami-id/'
+        _, stdout, stderr = ssh_connection.execute_command(cmd)
+        _assert_out(stdout, stderr, 'ami-12345678')
+
+        cmd = pre + 'latest/meta-data/network/interfaces/macs/'\
+            '02:29:96:8f:6a:2d/subnet-id'
+        _, stdout, stderr = ssh_connection.execute_command(cmd)
+        _assert_out(stdout, stderr, 'subnet-be9b61d')
+
+        # Test reading a non-leaf node WITHOUT a trailing slash.
+        cmd = pre + 'latest/meta-data'
+        _, stdout, stderr = ssh_connection.execute_command(cmd)
+        _assert_out_multiple(
+            stdout,
+            stderr,
+            ['ami-id', 'reservation-id', 'local-hostname', 'public-hostname',
+                'network/']
+        )
+
+        # Test reading a non-leaf node with a trailing slash.
+        cmd = pre + 'latest/meta-data/'
+        _, stdout, stderr = ssh_connection.execute_command(cmd)
+        _assert_out_multiple(
+            stdout,
+            stderr,
+            ['ami-id', 'reservation-id', 'local-hostname', 'public-hostname',
+                'network/']
+        )
+
+        cmd = 'ip route del 169.254.169.25' + str(i) + ' dev eth0 scope link'
+        _, stdout, stderr = ssh_connection.execute_command(cmd)
+        _assert_out(stdout, stderr, '')
 
 
 def test_mmds(test_microvm_with_ssh, network_config):
