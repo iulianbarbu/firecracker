@@ -12,10 +12,15 @@ pub fn parse_get_mmds() -> Result<ParsedRequest, Error> {
 
 pub fn parse_put_mmds(body: &Body, first_token: Option<&&str>) -> Result<ParsedRequest, Error> {
     let mut config_request = false;
-    if let Some(config_endpoint) = first_token {
-        if *config_endpoint == "config" {
+    if let Some(config_path) = first_token {
+        if *config_path == "config" {
             config_request = true;
-        }
+        } else {
+	    return Err(Error::Generic(
+                StatusCode::BadRequest,
+                format!("Unrecognized PUT request path `{}`.", *config_path)
+            ));
+	}
     }
 
     if config_request {
@@ -75,6 +80,27 @@ mod tests {
 
         let body = "invalid_body";
         assert!(parse_put_mmds(&Body::new(body), None).is_err());
+
+        let body = r#"{
+                "ipv4_address_pool": ["1.1.1.1"]
+              }"#;
+        let path = "config";
+        assert!(parse_put_mmds(&Body::new(body), Some(&path)).is_ok());
+
+        let body = r#"{
+                "ipv4_address_pool": []
+              }"#;
+        let path = "config";
+        assert!(parse_put_mmds(&Body::new(body), Some(&path)).is_err());
+
+        let body = r#"{
+                "invalid_config": "invalid_value"
+              }"#;
+        let path = "config";
+        assert!(parse_put_mmds(&Body::new(body), Some(&path)).is_err());
+
+        let path = "invalid_path";
+        assert!(parse_put_mmds(&Body::new(body), Some(&path)).is_err());
     }
 
     #[test]
@@ -82,9 +108,9 @@ mod tests {
         let body = r#"{
                 "foo": "bar"
               }"#;
-        assert!(parse_put_mmds(&Body::new(body), None).is_ok());
+        assert!(parse_patch_mmds(&Body::new(body)).is_ok());
 
         let body = "invalid_body";
-        assert!(parse_put_mmds(&Body::new(body), None).is_err());
+        assert!(parse_patch_mmds(&Body::new(body)).is_err());
     }
 }

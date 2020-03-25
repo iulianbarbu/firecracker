@@ -20,7 +20,7 @@ use request::vsock::parse_put_vsock;
 use ApiServer;
 
 use vmm::rpc_interface::{VmmAction, VmmActionError};
-use vmm::vmm_config::mmds::MmdsConfigError;
+use vmm::vmm_config::mmds::Error as MmdsConfigError;
 
 #[allow(clippy::large_enum_variant)]
 pub enum ParsedRequest {
@@ -192,7 +192,7 @@ impl std::fmt::Display for Error {
             ),
             Error::MmdsConfig(err) => write!(
                 f,
-                "An error occurred when deserializing the json body of a request: {}.",
+                "MMDS config request failed: {}",
                 err
             ),
         }
@@ -358,7 +358,6 @@ mod tests {
              {}",
             ApiServer::basic_json_body("fault_message", "message")
         );
-
         assert_eq!(&buf[..], expected_response.as_bytes());
 
         // Empty ID error.
@@ -435,6 +434,24 @@ mod tests {
             )
         );
         assert_eq!(&buf[..], expected_response.as_bytes());
+
+	// MMDS error.
+        let mut buf: [u8; 225] = [0; 225];
+        let response: Response = Error::MmdsConfig(MmdsConfigError::SetMmdsConfigurationNotAllowedPostBoot).into();
+        assert!(response.write_all(&mut buf.as_mut()).is_ok());
+        let expected_response = format!(
+            "HTTP/1.1 400 \r\n\
+             Server: Firecracker API\r\n\
+             Connection: keep-alive\r\n\
+             Content-Type: application/json\r\n\
+             Content-Length: 106\r\n\r\n\
+             {}",
+            ApiServer::basic_json_body(
+                "fault_message",
+                format!("MMDS config request failed: {}", MmdsConfigError::SetMmdsConfigurationNotAllowedPostBoot)
+            )
+        );
+	assert_eq!(&buf[..], expected_response.as_bytes());
     }
 
     #[test]
@@ -675,6 +692,50 @@ mod tests {
         assert!(connection.try_read().is_ok());
         let req = connection.pop_parsed_request().unwrap();
         assert!(ParsedRequest::try_from_request(&req).is_ok());
+
+	sender
+            .write_all(
+                b"PUT /mmds/config HTTP/1.1\r\n\
+                Content-Type: application/json\r\n\
+                Content-Length: 33\r\n\r\n{\"ipv4_address_pool\":[\"1.1.1.1\"]}",
+            )
+            .unwrap();
+        assert!(connection.try_read().is_ok());
+        let req = connection.pop_parsed_request().unwrap();
+        assert!(ParsedRequest::try_from_request(&req).is_ok());
+
+	sender
+            .write_all(
+                b"PUT /mmds/config HTTP/1.1\r\n\
+                Content-Type: application/json\r\n\
+                Content-Length: 24\r\n\r\n{\"ipv4_address_pool\":[]}",
+            )
+            .unwrap();
+        assert!(connection.try_read().is_ok());
+        let req = connection.pop_parsed_request().unwrap();
+        assert!(ParsedRequest::try_from_request(&req).is_err());
+
+	sender
+            .write_all(
+                b"PUT /mmds/config HTTP/1.1\r\n\
+                Content-Type: application/json\r\n\
+                Content-Length: 32\r\n\r\n{\"invalid_ipv4_address_pool\":[]}",
+            )
+            .unwrap();
+        assert!(connection.try_read().is_ok());
+        let req = connection.pop_parsed_request().unwrap();
+        assert!(ParsedRequest::try_from_request(&req).is_err());
+
+	sender
+            .write_all(
+                b"PUT /mmds/invalid_path HTTP/1.1\r\n\
+                Content-Type: application/json\r\n\
+                Content-Length: 33\r\n\r\n{\"ipv4_address_pool\":[\"1.1.1.1\"]}",
+            )
+            .unwrap();
+        assert!(connection.try_read().is_ok());
+        let req = connection.pop_parsed_request().unwrap();
+        assert!(ParsedRequest::try_from_request(&req).is_err());
     }
 
     #[test]

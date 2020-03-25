@@ -18,7 +18,7 @@ use vmm_config::drive::{BlockDeviceConfig, DriveError};
 use vmm_config::logger::{LoggerConfig, LoggerConfigError};
 use vmm_config::machine_config::{VmConfig, VmConfigError};
 use vmm_config::metrics::{MetricsConfig, MetricsConfigError};
-use vmm_config::mmds::{MmdsConfig, MmdsConfigError};
+use vmm_config::mmds::{MmdsConfig, Error as MmdsConfigError};
 use vmm_config::net::{
     NetworkInterfaceConfig, NetworkInterfaceError, NetworkInterfaceUpdateConfig,
 };

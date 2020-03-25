@@ -15,36 +15,65 @@ pub struct MmdsConfig {
 }
 
 impl MmdsConfig {
-    /// Parse Vec<String> to Vec<Ipv4>. Error out if there parse error encountered.
-    pub fn ipv4_addr_pool(&self) -> Result<Vec<Ipv4Addr>, MmdsConfigError> {
-        Ok(self
-            .ipv4_address_pool
-            .iter()
-            .map(|ipv4_str| {
-                Ipv4Addr::from_str(ipv4_str)
-                    .map_err(MmdsConfigError::IPv4ParseError)
-                    .unwrap()
-            })
-            .collect())
+    /// Parse Vec<String> to Vec<Ipv4Addr>.
+    /// Error out if there parse error encountered.
+    pub fn ipv4_addr_pool(&self) -> Result<Vec<Ipv4Addr>, Error> {
+        let mut ipv4_addr_vec = Vec::new();
+        for s in self.ipv4_address_pool.iter() {
+	    let ipv4_addr = Ipv4Addr::from_str(s).map_err(Error::IPv4ParseError)?;
+            ipv4_addr_vec.push(ipv4_addr);
+	}
+
+        Ok(ipv4_addr_vec)
     }
 }
 
 #[derive(Debug)]
 /// Used to describe errors related to MMDS configuration.
-pub enum MmdsConfigError {
+pub enum Error {
     /// `SetMmdsConfiguration` operation is not allowed post boot.
     SetMmdsConfigurationNotAllowedPostBoot,
     /// IPv4 parse error.
     IPv4ParseError(AddrParseError),
 }
 
-impl Display for MmdsConfigError {
+impl Display for Error {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            MmdsConfigError::SetMmdsConfigurationNotAllowedPostBoot => {
+            Error::SetMmdsConfigurationNotAllowedPostBoot => {
                 write!(f, "Setting MMDS configuration is not allowed after boot.",)
             }
-            MmdsConfigError::IPv4ParseError(err) => write!(f, "{:?}", err),
+            Error::IPv4ParseError(err) => write!(f, "{:?}", err),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vmm_config::mmds::MmdsConfig;
+    use vmm_config::mmds::Error;
+
+    #[test]
+    fn test_error_messages() {
+	assert_eq!(format!("{}", Error::SetMmdsConfigurationNotAllowedPostBoot),
+		"Setting MMDS configuration is not allowed after boot.");
+    }
+
+    #[test]
+    fn test_ipv4_addr_pool() {
+        let mmds_config = MmdsConfig {
+	    ipv4_address_pool: vec!["1.1.1.1".to_string(), "2.2.2.2".to_string()]
+        };
+	assert!(mmds_config.ipv4_addr_pool().is_ok());
+
+        let mmds_config = MmdsConfig {
+	    ipv4_address_pool: Vec::new()
+        };
+	assert!(mmds_config.ipv4_addr_pool().is_ok());
+
+        let wrong_mmds_config = MmdsConfig {
+	    ipv4_address_pool: vec!["1.1.1.1.1".to_string()]
+        };
+	assert!(wrong_mmds_config.ipv4_addr_pool().is_err());
     }
 }

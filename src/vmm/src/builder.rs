@@ -27,7 +27,7 @@ use vm_memory::{Bytes, GuestAddress, GuestMemoryMmap};
 use vmm_config;
 use vmm_config::boot_source::BootConfig;
 use vmm_config::drive::BlockDeviceConfigs;
-use vmm_config::mmds::{MmdsConfig, MmdsConfigError};
+use vmm_config::mmds::{MmdsConfig, Error as MmdsConfigError};
 use vmm_config::net::NetworkInterfaceConfigs;
 use vmm_config::vsock::VsockDeviceConfig;
 use vstate::{KvmContext, Vcpu, VcpuConfig, Vm};
