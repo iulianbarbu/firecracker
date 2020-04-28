@@ -406,6 +406,20 @@ mod tests {
     use super::*;
     use common::{Method, Version};
     use std::os::unix::net::UnixStream;
+    use MediaType;
+
+    impl Headers {
+        fn new_with_accept(
+            content_length: i32,
+            expect: bool,
+            chunked: bool,
+            accept: MediaType,
+        ) -> Self {
+            let mut headers = Headers::new(content_length, expect, chunked);
+            headers.set_accept(accept);
+            headers
+        }
+    }
 
     #[test]
     fn test_try_read_expect() {
@@ -429,7 +443,7 @@ mod tests {
 
         let expected_request = Request {
             request_line: RequestLine::new(Method::Patch, "http://localhost/home", Version::Http11),
-            headers: Headers::new(26, true, true),
+            headers: Headers::new_with_accept(26, true, true, MediaType::ApplicationJson),
             body: Some(Body::new(b"this is not\n\r\na json \nbody".to_vec())),
         };
 
@@ -465,7 +479,7 @@ mod tests {
 
         let expected_request = Request {
             request_line: RequestLine::new(Method::Patch, "http://localhost/home", Version::Http11),
-            headers: Headers::new(26, true, true),
+            headers: Headers::new_with_accept(26, true, true, MediaType::ApplicationJson),
             body: Some(Body::new(b"this is not\n\r\na json \nbody".to_vec())),
         };
         assert_eq!(request, expected_request);
@@ -498,7 +512,7 @@ mod tests {
         let request = conn.pop_parsed_request().unwrap();
         let expected_request = Request {
             request_line: RequestLine::new(Method::Patch, "http://localhost/home", Version::Http11),
-            headers: Headers::new(26, true, true),
+            headers: Headers::new_with_accept(26, true, true, MediaType::ApplicationJson),
             body: Some(Body::new(b"this is not\n\r\na json \nbody".to_vec())),
         };
         assert_eq!(request, expected_request);
@@ -559,7 +573,7 @@ mod tests {
         let request = conn.pop_parsed_request().unwrap();
         let expected_request = Request {
             request_line: RequestLine::new(Method::Patch, "http://localhost/home", Version::Http11),
-            headers: Headers::new(1400, true, true),
+            headers: Headers::new_with_accept(1400, true, true, MediaType::ApplicationJson),
             body: Some(Body::new(request_body)),
         };
         assert_eq!(request, expected_request);
@@ -624,7 +638,7 @@ mod tests {
         let request = conn.pop_parsed_request().unwrap();
         let expected_request = Request {
             request_line: RequestLine::new(Method::Patch, "http://localhost/home", Version::Http11),
-            headers: Headers::new(0, true, true),
+            headers: Headers::new_with_accept(0, true, true, MediaType::ApplicationJson),
             body: None,
         };
         assert_eq!(request, expected_request);
@@ -645,7 +659,7 @@ mod tests {
         let request = conn.pop_parsed_request().unwrap();
         let expected_request = Request {
             request_line: RequestLine::new(Method::Patch, "http://localhost/home", Version::Http11),
-            headers: Headers::new(0, false, false),
+            headers: Headers::new_with_accept(0, false, false, MediaType::ApplicationJson),
             body: None,
         };
         assert_eq!(request, expected_request);
@@ -673,7 +687,7 @@ mod tests {
         let request = conn.pop_parsed_request().unwrap();
         let expected_request = Request {
             request_line: RequestLine::new(Method::Patch, "http://localhost/home", Version::Http11),
-            headers: Headers::new(0, false, false),
+            headers: Headers::new_with_accept(0, false, false, MediaType::ApplicationJson),
             body: None,
         };
         assert_eq!(request, expected_request);
@@ -691,7 +705,7 @@ mod tests {
                 std::str::from_utf8(&expected_request_as_bytes[..997]).unwrap(),
                 Version::Http11,
             ),
-            headers: Headers::new(0, false, false),
+            headers: Headers::new_with_accept(0, false, false, MediaType::ApplicationJson),
             body: None,
         };
         assert_eq!(request, expected_request);
@@ -718,7 +732,7 @@ mod tests {
 
         let expected_request_first = Request {
             request_line: RequestLine::new(Method::Patch, "http://localhost/home", Version::Http11),
-            headers: Headers::new(26, false, true),
+            headers: Headers::new_with_accept(26, false, true, MediaType::ApplicationJson),
             body: Some(Body::new(b"this is not\n\r\na json \nbody".to_vec())),
         };
 
@@ -728,7 +742,7 @@ mod tests {
 
         let expected_request_second = Request {
             request_line: RequestLine::new(Method::Put, "http://farhost/away", Version::Http11),
-            headers: Headers::new(23, false, false),
+            headers: Headers::new_with_accept(23, false, false, MediaType::ApplicationJson),
             body: Some(Body::new(b"this is another request".to_vec())),
         };
         assert_eq!(request_first, expected_request_first);
