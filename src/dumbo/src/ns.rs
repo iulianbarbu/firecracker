@@ -344,7 +344,7 @@ mod tests {
                 )
                 .unwrap();
 
-                let segment_len = TcpSegment::write_incomplete_segment::<[u8]>(
+                let (_, segment) = TcpSegment::write_incomplete_segment::<[u8]>(
                     packet.inner_mut().payload_mut(),
                     SEQ_NUMBER,
                     1234,
@@ -354,9 +354,11 @@ mod tests {
                     0,
                     None,
                 )
-                .unwrap()
-                .finalize(REMOTE_PORT, MMDS_PORT, Some((REMOTE_ADDR, addr)))
-                .len();
+                .unwrap();
+
+                let segment_len = segment
+                    .finalize(REMOTE_PORT, MMDS_PORT, Some((REMOTE_ADDR, addr)))
+                    .len();
 
                 packet.with_payload_len_unchecked(segment_len, true).len()
             };

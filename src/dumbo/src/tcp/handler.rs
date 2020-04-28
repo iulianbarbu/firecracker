@@ -383,7 +383,7 @@ impl TcpIPv4Handler {
         // any TCP options, or a payload.
         if let Some((tuple, rst_cfg)) = self.rst_queue.pop() {
             let (seq, ack, flags_after_ns) = rst_cfg.seq_ack_tcp_flags();
-            let segment_len = TcpSegment::write_incomplete_segment::<[u8]>(
+            let (_, segment) = TcpSegment::write_incomplete_segment::<[u8]>(
                 packet.inner_mut().payload_mut(),
                 seq,
                 ack,
@@ -393,7 +393,8 @@ impl TcpIPv4Handler {
                 0,
                 None,
             )
-            .map_err(WriteNextError::TcpSegment)?
+            .map_err(WriteNextError::TcpSegment)?;
+            let segment_len = segment
             .finalize(
                 self.local_port,
                 tuple.remote_port,
@@ -583,7 +584,7 @@ mod tests {
 
         let s_len = {
             // We're going to use this simple segment to test stuff.
-            let s = TcpSegment::write_segment::<[u8]>(
+            let (_, s) = TcpSegment::write_segment::<[u8]>(
                 p.inner_mut().payload_mut(),
                 remote_port,
                 // We use the wrong port here initially, to trigger an error.

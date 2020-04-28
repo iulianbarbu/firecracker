@@ -100,7 +100,7 @@ mod tests {
         let seq = 1234;
         let ack = 5678;
 
-        let mut s = TcpSegment::write_segment::<[u8]>(
+        let (_, mut s) = TcpSegment::write_segment::<[u8]>(
             buf.as_mut(),
             0,
             0,

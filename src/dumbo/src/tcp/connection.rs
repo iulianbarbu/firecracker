@@ -734,7 +734,7 @@ impl Connection {
         ack: Wrapping<u32>,
         flags_after_ns: TcpFlags,
         payload: Option<(&R, usize)>,
-    ) -> Result<Incomplete<TcpSegment<'a, &'a mut [u8]>>, WriteNextError> {
+    ) -> Result<(usize, Incomplete<TcpSegment<'a, &'a mut [u8]>>), WriteNextError> {
         // Write the MSS option on SYNACK segments.
         let mss_option = if flags_after_ns == TcpFlags::SYN | TcpFlags::ACK {
             Some(self.mss)
@@ -742,7 +742,7 @@ impl Connection {
             None
         };
 
-        let segment = TcpSegment::write_incomplete_segment(
+        let (written_count, segment) = TcpSegment::write_incomplete_segment(
             buf,
             seq.0,
             ack.0,
@@ -760,7 +760,7 @@ impl Connection {
             self.pending_ack = false;
         }
 
-        Ok(segment)
+        Ok((written_count, segment))
     }
 
     // Control segments are segments with no payload (at least I like to use this name).
@@ -768,7 +768,7 @@ impl Connection {
         &mut self,
         buf: &'a mut [u8],
         mss_reserved: u16,
-    ) -> Result<Incomplete<TcpSegment<'a, &'a mut [u8]>>, WriteNextError> {
+    ) -> Result<(usize, Incomplete<TcpSegment<'a, &'a mut [u8]>>), WriteNextError> {
         let mut seq = self.highest_ack_received;
         let mut ack = self.ack_to_send;
         let mut flags_after_ns = TcpFlags::empty();
@@ -824,7 +824,7 @@ impl Connection {
         mss_reserved: u16,
         payload_src: PayloadSource<R>,
         now: u64,
-    ) -> Result<Option<Incomplete<TcpSegment<'a, &'a mut [u8]>>>, WriteNextError> {
+    ) -> Result<Option<(usize, Incomplete<TcpSegment<'a, &'a mut [u8]>>)>, WriteNextError> {
         // TODO: like receive_segment(), this function is specific in some ways to Connections
         // created via passive open. When/if we also implement active opens, some things will
         // have to change.
@@ -836,17 +836,17 @@ impl Connection {
         if self.send_rst.is_some() {
             // A RST is pending. Try to write it, and change the state of the connection to reset
             // if successfull.
-            let segment = self.write_control_segment::<R>(buf, mss_reserved)?;
+            let write_result = self.write_control_segment::<R>(buf, mss_reserved)?;
             self.set_flags(ConnStatusFlags::RESET);
-            return Ok(Some(segment));
+            return Ok(Some(write_result));
         }
 
         // The first thing we have to do is reply with a SYNACK if needed.
         if self.synack_pending() {
-            let segment = self.write_control_segment::<R>(buf, mss_reserved)?;
+            let write_result = self.write_control_segment::<R>(buf, mss_reserved)?;
             self.set_flags(ConnStatusFlags::SYNACK_SENT);
             self.rto_start = now;
-            return Ok(Some(segment));
+            return Ok(Some(write_result));
         }
 
         // Resend a SYNACK if the RTO expired. Otherwise, no reason to continue until the connection
@@ -860,9 +860,9 @@ impl Connection {
                     self.reset();
                     return self.write_next_segment(buf, mss_reserved, payload_src, now);
                 }
-                let segment = self.write_control_segment::<R>(buf, mss_reserved)?;
+                let write_result = self.write_control_segment::<R>(buf, mss_reserved)?;
                 self.rto_start = now;
-                return Ok(Some(segment));
+                return Ok(Some(write_result));
             }
             return Ok(None);
         }
@@ -892,9 +892,9 @@ impl Connection {
                         if self.highest_ack_received == fin_seq {
                             // We're in the relatively unlikely situation where our FIN got lost.
                             // Simply calling write_control_segment() will retransmit it.
-                            let segment = self.write_control_segment::<R>(buf, mss_reserved)?;
+                            let write_result = self.write_control_segment::<R>(buf, mss_reserved)?;
                             self.rto_start = now;
-                            return Ok(Some(segment));
+                            return Ok(Some(write_result));
                         }
                     }
 
@@ -942,7 +942,7 @@ impl Connection {
                 let tcp_flags = TcpFlags::ACK;
 
                 let ack_to_send = self.ack_to_send;
-                let mut segment = self.write_segment(
+                let (written_count, mut segment) = self.write_segment(
                     buf,
                     mss_reserved,
                     seq_to_send,
@@ -985,7 +985,7 @@ impl Connection {
                     self.first_not_sent = first_seq_after;
                 }
 
-                return Ok(Some(segment));
+                return Ok(Some((written_count, segment)));
             }
         }
 
@@ -996,14 +996,14 @@ impl Connection {
         // write_control_segment() method.
         let send_first_fin = self.can_send_first_fin();
         if self.pending_ack || send_first_fin {
-            let segment = self.write_control_segment::<R>(buf, mss_reserved)?;
+            let write_result = self.write_control_segment::<R>(buf, mss_reserved)?;
 
             if send_first_fin {
                 self.first_not_sent += Wrapping(1);
                 self.set_flags(ConnStatusFlags::FIN_SENT);
             }
 
-            return Ok(Some(segment));
+            return Ok(Some(write_result));
         }
 
         Ok(None)
@@ -1019,6 +1019,7 @@ pub(crate) mod tests {
     use std::fmt;
 
     use super::*;
+    use std::cmp::min;
 
     // A segment without options or a payload is 20 bytes long.
     const BASIC_SEGMENT_SIZE: usize = 20;
@@ -1079,7 +1080,7 @@ pub(crate) mod tests {
             buf: &'a mut [u8],
             add_mss_option: bool,
             payload: Option<(&[u8], usize)>,
-        ) -> TcpSegment<'a, &'a mut [u8]> {
+        ) -> (usize, TcpSegment<'a, &'a mut [u8]>) {
             let mss_option = if add_mss_option { Some(self.mss) } else { None };
             TcpSegment::write_segment(
                 buf,
@@ -1098,11 +1099,13 @@ pub(crate) mod tests {
         }
 
         pub fn write_syn<'a>(&self, buf: &'a mut [u8]) -> TcpSegment<'a, &'a mut [u8]> {
-            self.write_segment_helper(buf, true, None)
+            let (_, segment) = self.write_segment_helper(buf, true, None);
+            segment
         }
 
         pub fn write_ctrl<'a>(&self, buf: &'a mut [u8]) -> TcpSegment<'a, &'a mut [u8]> {
-            self.write_segment_helper(buf, false, None)
+            let (_, segment) = self.write_segment_helper(buf, false, None);
+            segment
         }
 
         pub fn write_data<'a>(
@@ -1110,7 +1113,7 @@ pub(crate) mod tests {
             buf: &'a mut [u8],
             data_buf: &[u8],
         ) -> TcpSegment<'a, &'a mut [u8]> {
-            let segment = self.write_segment_helper(buf, false, Some((data_buf, data_buf.len())));
+            let (_, segment) = self.write_segment_helper(buf, false, Some((data_buf, data_buf.len())));
             assert_eq!(segment.payload_len(), data_buf.len());
             segment
         }
@@ -1127,11 +1130,12 @@ pub(crate) mod tests {
             &mut self,
             c: &mut Connection,
             payload_src: Option<(&[u8], Wrapping<u32>)>,
-        ) -> Result<Option<TcpSegment<&mut [u8]>>, WriteNextError> {
+        ) -> Result<Option<(usize, TcpSegment<&mut [u8]>)>, WriteNextError> {
             let src_port = self.src_port;
             let dst_port = self.dst_port;
-            c.write_next_segment(self.buf.as_mut(), self.mss_reserved, payload_src, self.now)
-                .map(|o| o.map(|incomplete| incomplete.finalize(src_port, dst_port, None)))
+            let write_res = c.write_next_segment(self.buf.as_mut(), self.mss_reserved, payload_src, self.now)
+                .map(|opt| opt.map(|(written_count, s)| (written_count, s.finalize(src_port, dst_port, None))));
+            write_res
         }
 
         // Checks if the specified connection will reset after receiving the provided segment, and that
@@ -1153,14 +1157,16 @@ pub(crate) mod tests {
             if !recv_flags.intersects(RecvStatusFlags::RESET_RECEIVED) {
                 // If the connection initiated the reset, the next segment to write should be a RST.
                 // The first unwrap is for the Result, and the second for the Option.
+                let (_, s) = self.write_next_segment(c, payload_src).unwrap().unwrap();
                 check_control_segment(
-                    &self.write_next_segment(c, payload_src).unwrap().unwrap(),
+                    &s,
                     0,
                     additional_segment_flags | TcpFlags::RST,
                 );
             }
 
             // Calling write_next_segment again should result in a ConnectionReset error.
+
             assert_eq!(
                 self.write_next_segment(c, payload_src).unwrap_err(),
                 WriteNextError::ConnectionReset
@@ -1183,7 +1189,7 @@ pub(crate) mod tests {
             let conn_isn = c.first_not_sent.0.wrapping_sub(1);
             let mss = self.mss;
 
-            let s = self.write_next_segment(c, payload_src).unwrap().unwrap();
+            let (_, s) = self.write_next_segment(c, payload_src).unwrap().unwrap();
             // The MSS option is 4 bytes long.
             check_control_segment(&s, 4, TcpFlags::SYN | TcpFlags::ACK);
 
@@ -1480,7 +1486,7 @@ pub(crate) mod tests {
 
         {
             // We should get a pure ACK here, because we don't provide a payload source.
-            let s = t.write_next_segment(&mut c, None).unwrap().unwrap();
+            let (_, s) = t.write_next_segment(&mut c, None).unwrap().unwrap();
             check_acks(&s, expected_ack, TcpFlags::empty());
         }
 
@@ -1511,7 +1517,7 @@ pub(crate) mod tests {
             // (if we don't also provide a payload source, which we don't).
             {
                 {
-                    let s = t.write_next_segment(&mut c, None).unwrap().unwrap();
+                    let (_, s) = t.write_next_segment(&mut c, None).unwrap().unwrap();
                     check_acks(&s, expected_ack, TcpFlags::empty());
                 }
 
@@ -1543,23 +1549,28 @@ pub(crate) mod tests {
         // Let's fix it.
         payload_src.as_mut().unwrap().1 = Wrapping(conn_isn) + Wrapping(1);
 
-        // The mss is 1100, and the remote window is 11000, so we can send 10 data packets.
+        // mss = 1100 and the transmit window is 11000 so we can send 10 segments at maximum.
         let max = 10;
         let remote_isn = t.remote_isn;
         let mss = u32::from(t.mss);
 
+        let (payload_buf, mut response_seq) = payload_src.unwrap();
+        let mut payload_offset = 0;
         for i in 0..max {
             // Using the expects to get the value of i if there's an error.
-            let s = t
-                .write_next_segment(&mut c, payload_src)
+            let (written_count, s) = t
+                .write_next_segment(&mut c, Some((&payload_buf[payload_offset..], response_seq)))
                 .unwrap_or_else(|_| panic!("{}", i))
                 .unwrap_or_else(|| panic!("{}", i));
+
+            payload_offset += written_count;
+            response_seq += Wrapping(written_count as u32);
 
             // Again, the 1 accounts for the sequence number taken up by the SYN.
             assert_eq!(s.sequence_number(), conn_isn.wrapping_add(1 + i * mss));
             assert_eq!(s.ack_number(), remote_isn.wrapping_add(1));
             assert_eq!(s.flags_after_ns(), TcpFlags::ACK);
-            assert_eq!(s.payload_len(), mss as usize);
+            assert_eq!(s.payload_len(), written_count);
         }
 
         // No more new data can be sent until the window advances, even though data_buf
@@ -1576,7 +1587,7 @@ pub(crate) mod tests {
 
         // We should be able to send one more segment now.
         {
-            let s = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
+            let (_, s) = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
             assert_eq!(s.sequence_number(), conn_isn.wrapping_add(1 + max * mss));
             assert_eq!(s.payload_len(), mss as usize);
         }
@@ -1593,7 +1604,7 @@ pub(crate) mod tests {
 
         // Let's check that we indeed get a single retransmitted segment.
         {
-            let s = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
+            let (_, s) = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
             assert_eq!(s.sequence_number(), ctrl.ack_number());
             assert_eq!(s.payload_len(), mss as usize);
         }
@@ -1602,7 +1613,7 @@ pub(crate) mod tests {
         // Retransmissions also trigger after time-out.
         t.now += t.rto_period;
         {
-            let s = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
+            let (_, s) = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
             assert_eq!(s.sequence_number(), ctrl.ack_number());
             assert_eq!(s.payload_len(), mss as usize);
         }
@@ -1615,7 +1626,7 @@ pub(crate) mod tests {
 
         t.now += 1;
         {
-            let s = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
+            let (_, s) = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
             assert_eq!(s.sequence_number(), ctrl.ack_number());
             assert_eq!(s.payload_len(), mss as usize);
         }
@@ -1626,7 +1637,7 @@ pub(crate) mod tests {
         // Triggering another timeout should reset the connection, because t.rto_count_max == 3.
         t.now += t.rto_period;
         {
-            let s = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
+            let (_, s) = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
             assert!(s.flags_after_ns().intersects(TcpFlags::RST));
             assert!(c.is_reset());
         }
@@ -1654,7 +1665,7 @@ pub(crate) mod tests {
             (None, RecvStatusFlags::empty())
         );
         {
-            let s = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
+            let (_, s) = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
             assert_eq!(s.sequence_number(), ctrl.ack_number());
             assert_eq!(s.payload_len(), 123);
         }
@@ -1664,7 +1675,7 @@ pub(crate) mod tests {
         assert!(t.write_next_segment(&mut c, payload_src).unwrap().is_none());
         t.now += 1;
         {
-            let s = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
+            let (_, s) = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
             assert_eq!(s.sequence_number(), ctrl.ack_number());
             assert_eq!(s.payload_len(), 123);
         }
@@ -1717,7 +1728,7 @@ pub(crate) mod tests {
 
         // The next segment right now should be a pure ACK for the FIN.
         {
-            let s = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
+            let (_, s) = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
             check_control_segment(&s, 0, TcpFlags::ACK);
             assert_eq!(s.ack_number(), ctrl.sequence_number().wrapping_add(1),);
         }
@@ -1762,7 +1773,7 @@ pub(crate) mod tests {
 
         // If we call write_next at this point, the next outgoing segment should be a pure FIN/ACK.
         {
-            let s = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
+            let (_, s) = t.write_next_segment(&mut c, payload_src).unwrap().unwrap();
             check_control_segment(&s, 0, TcpFlags::FIN | TcpFlags::ACK);
             assert_eq!(
                 s.sequence_number(),
