@@ -15,6 +15,7 @@
 - Added a [guide](docs/devctr-image.md) for updating the dev container image.
 - Added a new API call, `PUT /mmds/config`, for configuring the
   `MMDS` with a custom valid link-local IPv4 address.
+- Added JSON response format to MMDS guest applications requests.
 
 ### Fixed
 - Added `--version` flag to both Firecracker and Jailer.
