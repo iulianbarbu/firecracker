@@ -54,6 +54,7 @@ RUN apt-get update \
         boto3 \
         dataclasses \
         nsenter \
+        psutil \
         pycodestyle \
         pydocstyle \
         pylint \

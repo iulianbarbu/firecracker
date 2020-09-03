@@ -2,18 +2,39 @@
 # SPDX-License-Identifier: Apache-2.0
 """Generic utility functions that are used in the framework."""
 import asyncio
+import functools
 import glob
 import logging
 import os
+import psutil
 import re
 import subprocess
 import threading
 import typing
+
 from enum import Enum, auto
-from collections import namedtuple
+from collections import namedtuple, defaultdict
+
 
 CommandReturn = namedtuple("CommandReturn", "returncode stdout stderr")
 CMDLOG = logging.getLogger("commands")
+
+
+class CpuMap(object):
+    """Cpu map from real cpu cores to containers visible cores.
+
+    When a docker container is restricted in terms of assigned cpu cores,
+    the information from `/proc/cpuinfo` will present all the cpu cores
+    of the cores instead of showing only the container assigned cores.
+    This class maps the real assigned host cpu cores to virtual cpu cores,
+    starting from 0.
+    """
+    arr = None
+
+    def __new__(cls, x):
+        if not CpuMap.arr:
+            CpuMap.arr = cpus_arr()
+        return CpuMap.arr[x]
 
 
 class StoppableThread(threading.Thread):
@@ -206,3 +227,101 @@ def get_cpu_vendor():
     if 'AuthenticAMD' in brand_str:
         return CpuVendor.AMD
     return CpuVendor.INTEL
+
+
+def is_range(content):
+    """Return true if `content` is a range.
+
+    E.g ranges: 0-10.
+    """
+    match = re.search("([0-9][1-9]*)-([0-9][1-9]*)", content)
+    # Group is a singular value.
+    return match is not None
+
+
+def list_range(content):
+    """Return a range of integers based on the `content`.
+    The `content` respects the LIST FORMAT defined in the
+    cpuset documentation.
+    See: https://man7.org/linux/man-pages/man7/cpuset.7.html.
+    """
+    content = content.strip()
+    ends = content.split("-")
+    if len(ends) != 2:
+        return None
+
+    return list(range(int(ends[0]), int(ends[1]) + 1))
+
+
+def parse_list_format(content):
+    """Parse list formats for cpuset and mems.
+    See LIST FORMAT here: https://man7.org/linux/man-pages/man7/cpuset.7.html.
+    """
+    content = content.strip()
+    if len(content) == 0:
+        return []
+
+    groups = content.split(",")
+    arr = set()
+
+    def func(acc, cpu):
+        if is_range(cpu):
+            acc.update(list_range(cpu))
+        else:
+            acc.add(int(cpu))
+        return acc
+
+    return list(functools.reduce(func, groups, arr))
+
+
+def cpus_arr():
+    """Obtain the real processor map.
+
+    See this issue for details:
+    https://github.com/moby/moby/issues/20770.
+    """
+    cmd = "cat /proc/mounts | grep cgroup | grep cpuset | cut -d' ' -f2"
+    rc, stdout, stderr = run_cmd(cmd)
+    assert rc == 0
+    cpuset_mountpoint = stdout.strip()
+
+    cmd = "cat {}/cpuset.cpus".format(cpuset_mountpoint)
+    rc, cpulist, stderr = run_cmd(cmd)
+    assert rc == 0
+
+    return parse_list_format(cpulist)
+
+
+def get_threads(pid):
+    """
+    Return dict consisting of child threads.
+
+    {
+        "name": [thread_pids]
+    }
+    """
+    threads_map = defaultdict(list)
+
+    proc = psutil.Process(pid)
+    for thread in proc.threads():
+        threads_map[psutil.Process(thread.id).name()].append(thread.id)
+
+    return threads_map
+
+
+def get_cpu_affinity(pid):
+    """
+    Get CPU affinity for a thread.
+
+    Returns a list.
+    """
+    return psutil.Process(pid).cpu_affinity()
+
+
+def set_cpu_affinity(pids, cpulist):
+    """Set CPU affinity for a thread."""
+
+    real_cpulist = list(map(lambda x: CpuMap(x), cpulist))
+    for pid in pids:
+        psutil.Process(pid).cpu_affinity(real_cpulist)
+
