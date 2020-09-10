@@ -13,8 +13,6 @@ import host_tools.logging as log_tools
 import host_tools.network as net_tools
 
 
-DEFAULT_HOST_IP = "192.168.0.1"
-DEFAULT_GUEST_IP = "192.168.0.2"
 DEFAULT_TAP_NAME = "tap0"
 DEFAULT_DEV_NAME = "eth0"
 DEFAULT_NETMASK = 30
@@ -55,6 +53,7 @@ class MicrovmBuilder:
               disks: [DiskArtifact],
               ssh_key: Artifact,
               config: Artifact,
+              network_config: net_tools.UniqueIPv4Generator,
               enable_diff_snapshots=False,
               cpu_template=None):
         """Build a fresh microvm."""
@@ -72,13 +71,14 @@ class MicrovmBuilder:
         ssh_key.download(self.root_path)
         vm.ssh_config['ssh_key_path'] = ssh_key.local_path()
         os.chmod(vm.ssh_config['ssh_key_path'], 0o400)
-        vm.create_tap_and_ssh_config(host_ip=DEFAULT_HOST_IP,
-                                     guest_ip=DEFAULT_GUEST_IP,
+        (host_ip, guest_ip) = network_config.get_next_available_ips(2)
+        vm.create_tap_and_ssh_config(host_ip=host_ip,
+                                     guest_ip=guest_ip,
                                      netmask_len=DEFAULT_NETMASK,
                                      tapname=DEFAULT_TAP_NAME)
 
         # TODO: propper network configuraiton with artifacts.
-        guest_mac = net_tools.mac_from_ip(DEFAULT_GUEST_IP)
+        guest_mac = net_tools.mac_from_ip(guest_ip)
         response = vm.network.put(
             iface_id=DEFAULT_DEV_NAME,
             host_dev_name=DEFAULT_TAP_NAME,
