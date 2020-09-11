@@ -178,7 +178,7 @@ class StatisticDef:
     @classmethod
     def defaults(cls,
                  measurement_name: str,
-                 pass_criteria: [Criteria]) \
+                 pass_criteria: dict) \
             -> List['StatisticDef']:
         """Return list with default statistics definitions."""
         default_stat_defs = []
@@ -207,10 +207,13 @@ class Consumer:
     RESULT_KEY = "result"
 
     # pylint: disable=W0102
-    def __init__(self, private=None, measurements_defs=[], statistics_defs=[],
+    def __init__(self,
+                 measurements_defs=[],
+                 statistics_defs=[],
+                 custom={},
                  consume_stats=False):
         """Initialize a consumer."""
-        self._private = private
+        self._custom = {}
         self._results = {}  # Aggregated results.
         self._measurements_defs = {m.name: m for m in measurements_defs}
         self._statistics_defs = {s.name: s for s in statistics_defs}
@@ -220,14 +223,17 @@ class Consumer:
     def ingest(self, raw_data):
         """Abstract method for ingesting the raw result."""
 
-    def consume(self, name, value):
+    def consume_result(self, name, value):
         """Aggregate measurement."""
         results = self._results.get(name, None)
         if results is None:
             self._results[name] = []
         self._results[name].append(value)
 
-    def generate_result(self) -> Dict[str, dict]:
+    def consume_custom(self, name, value):
+        self._custom[name] = value
+
+    def process(self) -> Dict[str, dict]:
         """Generate statistics as a dictionary."""
         # Validate that all statistics have results data.
         assert len(self._results) is len(self._statistics_defs)
@@ -261,7 +267,24 @@ class Consumer:
                                         " Target: %r vs actual: %r." \
                                         % (stat.check.name, stat.name,
                                            str(stat.check.target), str(res))
-        return self._statistics
+        return self._statistics, self._custom
+
+
+class LambdaConsumer(Consumer):
+    def __init__(self,
+                 func,
+                 measurements_defs=[],
+                 statistics_defs=[],
+                 consume_stats=False, *args):
+        super().__init__(measurements_defs, statistics_defs, consume_stats)
+        self.func = func
+        self.args = args
+
+    def ingest(self, raw_data):
+        if not self.args:
+            self.func(self, raw_data)
+        else:
+            self.func(self, raw_data, self.args)
 
 
 class PingConsumer(Consumer):
@@ -274,9 +297,10 @@ class PingConsumer(Consumer):
     INT_REG = r'[0-9]+'
     FLOAT_REG = r'[+-]?[0-9]+\.[0-9]+'
 
-    def __init__(self, requests, measurement_defs, statistic_defs):
+    def __init__(self, requests, measurement_defs, statistic_defs, custom={}):
         """Initialize a PingConsumer."""
-        super().__init__(private=requests,
+        self.requests = requests
+        super().__init__(custom=custom,
                          measurements_defs=measurement_defs,
                          statistics_defs=statistic_defs,
                          consume_stats=True)
@@ -296,7 +320,7 @@ class PingConsumer(Consumer):
         stat_values = output[-2]
         stat_values = re.findall(PingConsumer.FLOAT_REG, stat_values)
         for index, stat_value in enumerate(stat_values[:4]):
-            self.consume(name=stats[index], value=float(stat_value))
+            self.consume_result(name=stats[index], value=float(stat_value))
 
         # Get statistics on packet loss.
         packet_stats = output[-3]
@@ -305,11 +329,10 @@ class PingConsumer(Consumer):
 
         # Make sure we got only the packet loss percentage.
         assert len(packet_stats) == 1
-        self.consume(name="pkt_loss", value=packet_stats[0])
+        self.consume_result(name="pkt_loss", value=packet_stats[0])
 
         # Compute percentiles.
-        requests = self._private
-        seqs = output[1:requests + 1]
+        seqs = output[1:self.requests + 1]
         times = []
         for index, seq in enumerate(seqs):
             time = re.findall(PingConsumer.FLOAT_REG + ' ms', seq)[0]
@@ -317,9 +340,9 @@ class PingConsumer(Consumer):
             times.append(time)
 
         times.sort()
-        self.consume(name=StatisticDef.P50_KEY,
-                     value=times[int(requests * 0.5)])
-        self.consume(name=StatisticDef.P90_KEY,
-                     value=times[int(requests * 0.9)])
-        self.consume(name=StatisticDef.P99_KEY,
-                     value=times[int(requests * 0.99)])
+        self.consume_result(name=StatisticDef.P50_KEY,
+                            value=times[int(self.requests * 0.5)])
+        self.consume_result(name=StatisticDef.P90_KEY,
+                            value=times[int(self.requests * 0.9)])
+        self.consume_result(name=StatisticDef.P99_KEY,
+                            value=times[int(self.requests * 0.99)])

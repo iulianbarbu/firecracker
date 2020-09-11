@@ -101,8 +101,7 @@ def _g2h_send_ping(context):
     custom = {"microvm": context.microvm.name(),
               "kernel": context.kernel.name(),
               "disk": context.disk.name()}
-    st_core = core.Core(name="network_latency", fc_version="TODO",
-                        platform="TODO", iterations=1, custom=custom)
+    st_core = core.Core(name="network_latency", iterations=1, custom=custom)
 
     # Measurements.
     pkt_loss = "pkt_loss"

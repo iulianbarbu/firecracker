@@ -16,12 +16,9 @@ class Statistics(TypedDict):
     """Data class for aggregated statistic results."""
 
     name: str
-    fc_version: str
-    # TODO: instance, host linux kernel, guest linux kernel etc.
-    platform: str
-    iterations: int = 1
-    custom: dict
+    iterations: int
     results: dict
+    custom: dict
 
 
 Pipe = namedtuple("Pipe", "producer consumer")
@@ -30,15 +27,13 @@ Pipe = namedtuple("Pipe", "producer consumer")
 class Core:
     """Base class for statistics core driver."""
 
-    def __init__(self, name, fc_version, platform, iterations, custom):
+    def __init__(self, name, iterations, custom={}):
         """Core constructor."""
         self._pipes = defaultdict(Pipe)
         self._statistics = Statistics(name=name,
-                                      fc_version=fc_version,
-                                      platform=platform,
                                       iterations=iterations,
-                                      custom=custom,
-                                      results={})
+                                      results={},
+                                      custom=custom)
 
     def add_pipe(self, producer: Producer, consumer: Consumer, tag=None):
         """Add a new producer-consumer pipe."""
@@ -56,8 +51,10 @@ class Core:
                 iterations -= 1
 
         for tag, pipe in self._pipes.items():
-            result = pipe.consumer.generate_result()
+            result, custom = pipe.consumer.process()
             self._statistics['results'][tag] = result
+            if len(custom) > 0:
+                self._statistics['custom'][tag] = custom
 
         return self._statistics
 
@@ -72,26 +69,6 @@ class Core:
         self._statistics.name = name
 
     @property
-    def fc_version(self):
-        """Return statistics Firecracker version."""
-        return self._statistics.fc_version
-
-    @fc_version.setter
-    def fc_version(self, fc_version):
-        """Set statistics Firecracker version."""
-        self._statistics.fc_version = fc_version
-
-    @property
-    def platform(self):
-        """Return statistics platform."""
-        return self._statistics.platform
-
-    @platform.setter
-    def platform(self, platform):
-        """Set statistics platform."""
-        self._statistics.platform = platform
-
-    @property
     def iterations(self):
         """Return statistics iterations count."""
         return self._statistics.iterations
@@ -100,6 +77,16 @@ class Core:
     def iterations(self, iterations):
         """Set statistics iterations count."""
         self._statistics.iterations = iterations
+
+    @property
+    def custom(self):
+        """Return statistics custom information."""
+        return self._statistics.custom
+
+    @iterations.setter
+    def iterations(self, custom):
+        """Set statistics custom information."""
+        self._statistics.custom = custom
 
     @property
     def statistics(self):
