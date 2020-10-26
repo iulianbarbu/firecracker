@@ -4,9 +4,10 @@
 """Module for multiple statistics consumers."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Any
 from collections import defaultdict
 from .types import MeasurementDef, StatisticDef
+from .criteria import Result
 
 
 class Consumer(ABC):
@@ -69,7 +70,7 @@ class Consumer(ABC):
         """Set measurement definition."""
         self._measurements_defs[value.name] = value
 
-    def process(self) -> Dict[str, dict]:
+    def process(self) -> (Result, dict, dict):
         """Generate statistics as a dictionary."""
         # Verify that the statistics/measurements correspondence
         # is backed by corresponding measurements definitions.
@@ -112,11 +113,12 @@ class Consumer(ABC):
                         stat.func_cls(self._results[ms_name][self.DATA_KEY])()
 
                 # Check pass criteria.
+                result = Result()
                 if stat.criteria:
                     res = self._statistics[ms_name][st_name]
-                    stat.criteria.check(res)
+                    result = stat.criteria.check(res)
 
-        return self._statistics, self._custom
+        return result, self._statistics, self._custom
 
 
 class LambdaConsumer(Consumer):

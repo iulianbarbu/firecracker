@@ -57,11 +57,14 @@ class Core:
                     pipe.consumer.ingest(iteration, raw_data)
 
         for tag, pipe in self._pipes.items():
-            result, custom = pipe.consumer.process()
-            self._statistics['results'][tag] = result
+            result, stats, custom = pipe.consumer.process()
+            self._statistics['results'][tag] = stats
+
             # Custom information extracted from all the iterations.
             if len(custom) > 0:
                 self._statistics['custom'][tag] = custom
+
+            assert result.is_ok(), f"Failed on '{tag}': {result.msg}"
 
         return self._statistics
 

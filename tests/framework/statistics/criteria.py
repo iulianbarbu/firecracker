@@ -7,6 +7,29 @@ from numbers import Number
 from abc import ABC, abstractmethod
 
 
+class Result:
+    """Result of a criteria check."""
+
+    def __init__(self, ok=True, msg=None):
+        """Initialize the result."""
+        self._ok = ok
+        self._msg = msg
+
+    def is_ok(self):
+        """Indicate if the result is ok or not."""
+        return self._ok
+
+    @property
+    def msg(self):
+        """Return the result message."""
+        return self._msg
+
+    @msg.setter
+    def msg(self, msg):
+        """Set the result message."""
+        self._msg = msg
+
+
 # pylint: disable=R0903
 class ComparisonCriteria(ABC):
     """Comparison criteria between results and targets."""
@@ -17,7 +40,7 @@ class ComparisonCriteria(ABC):
         self.name = name
 
     @abstractmethod
-    def check(self, actual):
+    def check(self, actual) -> Result:
         """Compare the target and the actual."""
 
 
@@ -29,11 +52,14 @@ class GraterThan(ComparisonCriteria):
         """Initialize the criteria."""
         super().__init__("GreaterThan", target)
 
-    def check(self, actual):
+    def check(self, actual) -> Result:
         """Compare the target and the actual."""
         fail_msg = self.name + f" failed. Target: '{self.target} " \
                                f"vs Actual: '{actual}'."
-        assert self.target < actual, fail_msg
+        if self.target > actual:
+            return Result(ok=False, msg=fail_msg)
+
+        return Result()
 
 
 # pylint: disable=R0903
@@ -44,11 +70,14 @@ class LowerThan(ComparisonCriteria):
         """Initialize the criteria."""
         super().__init__("LowerThan", target)
 
-    def check(self, actual):
+    def check(self, actual) -> Result:
         """Compare the target and the actual."""
         fail_msg = self.name + f" failed. Target: '{self.target} " \
                                f"vs Actual: '{actual}'."
-        assert self.target > actual, fail_msg
+        if self.target < actual:
+            return Result(ok=False, msg=fail_msg)
+
+        return Result()
 
 
 # pylint: disable=R0903
@@ -65,4 +94,7 @@ class EqualWith(ComparisonCriteria):
         fail_msg = self.name + f" failed. Target: '{self.target} +- " \
                                f"{self.tolerance}' " \
                                f"vs Actual: '{actual}'."
-        assert abs(self.target - actual) <= self.tolerance, fail_msg
+        if abs(self.target - actual) > self.tolerance:
+            return Result(ok=False, msg=fail_msg)
+
+        return Result()
