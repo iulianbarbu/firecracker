@@ -55,13 +55,13 @@ class CpuMap:
     starting from 0.
     """
 
-    arr = []
+    _arr = []
 
     def __new__(cls, x):
         """Instantiate the class field."""
-        if not CpuMap.arr:
-            CpuMap.arr = CpuMap._cpus()
-        return CpuMap.arr[x]
+        if not CpuMap._arr:
+            CpuMap._arr = CpuMap._cpus()
+        return CpuMap._arr[x]
 
     @classmethod
     def _cpuset_mountpoint(cls):
@@ -133,6 +133,27 @@ class ListFormatParser:
             return acc
 
         return list(functools.reduce(func, groups, arr))
+
+
+class CmdBuilder:
+    """Command builder class."""
+
+    def __init__(self, bin_path):
+        """Initialize the command builder."""
+        self._bin_path = bin_path
+        self._args = {}
+
+    def with_arg(self, flag, value=""):
+        """Add a new argument."""
+        self._args[flag] = value
+        return self
+
+    def build(self):
+        """Build the command."""
+        cmd = self._bin_path + " "
+        for flag in self._args:
+            cmd += flag + " " + "{}".format(self._args[flag]) + " "
+        return cmd
 
 
 class StoppableThread(threading.Thread):
