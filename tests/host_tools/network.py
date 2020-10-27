@@ -5,7 +5,7 @@
 import os
 import socket
 import struct
-
+import subprocess
 from io import StringIO
 from nsenter import Namespace
 from retry import retry
@@ -38,9 +38,9 @@ class SSHConnection:
 
         self._init_connection()
 
-    def execute_command(self, cmd_string):
+    def execute_command(self, cmd_string, without_asyncio=False):
         """Execute the command passed as a string in the ssh context."""
-        exit_code, stdout, stderr = self._exec(cmd_string)
+        exit_code, stdout, stderr = self._exec(cmd_string, without_asyncio)
         return exit_code, StringIO(stdout), StringIO(stderr)
 
     def scp_file(self, local_path, remote_path):
@@ -73,9 +73,33 @@ class SSHConnection:
         if ecode != 0:
             raise ConnectionError
 
-    def _exec(self, cmd):
+    def _exec(self, cmd, without_asyncio=False):
         """Private function that handles the ssh client invocation."""
         def _exec_raw(_cmd):
+            if without_asyncio:
+                # pylint: disable=subprocess-run-check
+                cp = subprocess.run([
+                    "ssh",
+                    "-q",
+                    "-o", "ConnectTimeout=1",
+                    "-o", "StrictHostKeyChecking=no",
+                    "-o", "UserKnownHostsFile=/dev/null",
+                    "-i", self.ssh_config["ssh_key_path"],
+                    "{}@{}".format(
+                        self.ssh_config["username"],
+                        self.ssh_config["hostname"]
+                    ),
+                    _cmd],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=False)
+                _res = (
+                    cp.returncode,
+                    cp.stdout.decode(),
+                    cp.stderr.decode()
+                )
+                return _res
+
             # pylint: disable=subprocess-run-check
             cp = utils.run_cmd([
                 "ssh",
