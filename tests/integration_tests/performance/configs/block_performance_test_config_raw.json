@@ -1,0 +1,789 @@
+{
+  "block_device_size": 2048,
+  "time": 300,
+  "omit": 10,
+  "load_factor": 1,
+  "fio_blk_sizes": [
+    4096
+  ],
+  "fio_modes": [
+    "randrw",
+    "randread",
+    "read",
+    "readwrite"
+  ],
+  "hosts": {
+    "instances": {
+      "m5d.metal": {
+        "cpus": [
+          {
+            "model": "Intel(R) Xeon(R) Platinum 8259CL CPU @ 2.50GHz",
+            "baseline_cpu_utilization_vmm": {
+              "vmlinux-4.14.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 35.63938759689923,
+                    "delta_percentage": 7.066023999095407
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 34.52291472868217,
+                    "delta_percentage": 7.227434495286994
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 34.009906976744176,
+                    "delta_percentage": 6.93026984221435
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 34.78645736434109,
+                    "delta_percentage": 7.146314206546976
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 64.40205714285698,
+                    "delta_percentage": 6.433290681917472
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 63.60622857142841,
+                    "delta_percentage": 7.742996754903374
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 62.46751428571417,
+                    "delta_percentage": 6.1064678122492175
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 62.595066666666526,
+                    "delta_percentage": 6.107877529094113
+                  }
+                }
+              },
+              "vmlinux-4.9.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 34.84896031746032,
+                    "delta_percentage": 9.422528938534168
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 33.35213492063492,
+                    "delta_percentage": 10.596868617410994
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 32.458999999999996,
+                    "delta_percentage": 7.694766186282205
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 33.055142857142854,
+                    "delta_percentage": 8.23200278429168
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 63.99918095238078,
+                    "delta_percentage": 6.279216842521878
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 63.07911428571415,
+                    "delta_percentage": 6.387891542040618
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 62.150752380952284,
+                    "delta_percentage": 5.457370868049372
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 62.22545714285704,
+                    "delta_percentage": 6.031490822839808
+                  }
+                }
+              }
+            },
+            "baseline_cpu_utilization_vcpus_total": {
+              "vmlinux-4.14.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 85.7607906976746,
+                    "delta_percentage": 4.5267448524795
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 85.49849612403119,
+                    "delta_percentage": 4.69068664779189
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 85.60015503875987,
+                    "delta_percentage": 4.595521121405862
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 85.44248062015522,
+                    "delta_percentage": 4.6564090444444375
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 170.9660952380956,
+                    "delta_percentage": 4.395601194994936
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 170.90451428571464,
+                    "delta_percentage": 4.39867180750442
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 170.8599047619051,
+                    "delta_percentage": 4.447312667273203
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 170.86022857142893,
+                    "delta_percentage": 4.403843445089021
+                  }
+                }
+              },
+              "vmlinux-4.9.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 85.73273809523828,
+                    "delta_percentage": 4.615049798427167
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 85.44580158730176,
+                    "delta_percentage": 4.4978689324227945
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 85.48536507936525,
+                    "delta_percentage": 4.688584939215803
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 85.43216666666684,
+                    "delta_percentage": 4.422636366114646
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 170.85774285714322,
+                    "delta_percentage": 4.424164612279498
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 170.84777142857178,
+                    "delta_percentage": 4.500641055274571
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 170.9100571428575,
+                    "delta_percentage": 4.421601116014819
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 170.87014285714324,
+                    "delta_percentage": 4.37090058763
+                  }
+                }
+              }
+            },
+            "baseline_iops_read": {
+              "vmlinux-4.14.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 46844.78694978092,
+                    "delta_percentage": 7.720038576464232
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 94965.147896347,
+                    "delta_percentage": 7.838442227192487
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 95719.07062300692,
+                    "delta_percentage": 7.205279596536668
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 47129.780830675896,
+                    "delta_percentage": 7.398900703381992
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 98331.90835992992,
+                    "delta_percentage": 7.873315742322459
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 200546.14779296066,
+                    "delta_percentage": 8.400552091951175
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 200125.99843223442,
+                    "delta_percentage": 8.637116958426542
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 97010.55415862399,
+                    "delta_percentage": 7.421307084996709
+                  }
+                }
+              },
+              "vmlinux-4.9.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 47177.935718001805,
+                    "delta_percentage": 8.65137167282548
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 94378.86698678133,
+                    "delta_percentage": 9.00345047727637
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 94099.41479534957,
+                    "delta_percentage": 9.491574327368621
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 46482.115839305625,
+                    "delta_percentage": 8.786204737443777
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 98472.67810511228,
+                    "delta_percentage": 7.357603425255405
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 200618.14587195413,
+                    "delta_percentage": 7.390712230164558
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 200966.95014046822,
+                    "delta_percentage": 7.3931719322113825
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 97068.66936263736,
+                    "delta_percentage": 8.093140211918184
+                  }
+                }
+              }
+            },
+            "baseline_bw_read": {
+              "vmlinux-4.14.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 187379.86912187914,
+                    "delta_percentage": 7.720029832366537
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 379861.412028467,
+                    "delta_percentage": 7.838430963506244
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 382877.10150112776,
+                    "delta_percentage": 7.2052792416087055
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 188519.94001114828,
+                    "delta_percentage": 7.398958685682825
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 393328.89630100335,
+                    "delta_percentage": 7.873492500077425
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 802186.3093167702,
+                    "delta_percentage": 8.400544574373804
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 800505.8057576047,
+                    "delta_percentage": 8.637124447606492
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 388043.92913744226,
+                    "delta_percentage": 7.421278944235278
+                  }
+                }
+              },
+              "vmlinux-4.9.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 188712.55996522802,
+                    "delta_percentage": 8.651362814342072
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 377516.5071338324,
+                    "delta_percentage": 9.003445860022955
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 376398.6979614588,
+                    "delta_percentage": 9.491562057854983
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 185929.4688328821,
+                    "delta_percentage": 8.786159589509776
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 393892.27048510907,
+                    "delta_percentage": 7.357656559443999
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 802474.2979547699,
+                    "delta_percentage": 7.390666995652451
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 803869.5044319159,
+                    "delta_percentage": 7.393362762137832
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 388276.39262494026,
+                    "delta_percentage": 8.09325719788454
+                  }
+                }
+              }
+            },
+            "baseline_iops_write": {
+              "vmlinux-4.14.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 46851.18701848539,
+                    "delta_percentage": 7.724801349944977
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 47131.033772264134,
+                    "delta_percentage": 7.399161444415417
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 98335.34529797739,
+                    "delta_percentage": 7.875218561994107
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 97013.88710208632,
+                    "delta_percentage": 7.392460427739563
+                  }
+                }
+              },
+              "vmlinux-4.9.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 47175.599356054576,
+                    "delta_percentage": 8.656927357700098
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 46477.85489462229,
+                    "delta_percentage": 8.80161113132245
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 98477.82632744068,
+                    "delta_percentage": 7.360783069148709
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 97062.99933365185,
+                    "delta_percentage": 8.095043307121946
+                  }
+                }
+              }
+            },
+            "baseline_bw_write": {
+              "vmlinux-4.14.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 187405.44536957817,
+                    "delta_percentage": 7.724795786364391
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 188524.9545101242,
+                    "delta_percentage": 7.399223365452377
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 393343.3618964803,
+                    "delta_percentage": 7.875114288155036
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 388057.38383405,
+                    "delta_percentage": 7.392432923352185
+                  }
+                }
+              },
+              "vmlinux-4.9.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 188703.20727982162,
+                    "delta_percentage": 8.656925413174879
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 185912.4302157987,
+                    "delta_percentage": 8.801554006539863
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 393913.4479114509,
+                    "delta_percentage": 7.3607309046820815
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 388254.18722376175,
+                    "delta_percentage": 8.095050369795658
+                  }
+                }
+              }
+            }
+          },
+          {
+            "model": "Intel(R) Xeon(R) Platinum 8175M CPU @ 2.50GHz",
+            "baseline_cpu_utilization_vmm": {
+              "vmlinux-4.14.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 36.86591666666669,
+                    "delta_percentage": 5.78006581397711
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 35.99895833333335,
+                    "delta_percentage": 6.565322245642919
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 35.36127777777779,
+                    "delta_percentage": 7.582666155370245
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 36.24459722222224,
+                    "delta_percentage": 7.376184356501018
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 69.59230370370373,
+                    "delta_percentage": 5.400448089945364
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 69.09552592592593,
+                    "delta_percentage": 5.775812588722348
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 69.09037037037037,
+                    "delta_percentage": 5.696511675255834
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 68.8797925925926,
+                    "delta_percentage": 5.74691361248251
+                  }
+                }
+              },
+              "vmlinux-4.9.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 41.47156521739135,
+                    "delta_percentage": 6.490591819420654
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 40.24776811594208,
+                    "delta_percentage": 6.1575670575981665
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 39.639115942029036,
+                    "delta_percentage": 6.413933617559966
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 39.990971014492814,
+                    "delta_percentage": 6.248729228299511
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 70.92567441860476,
+                    "delta_percentage": 5.250983646145478
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 70.1438759689923,
+                    "delta_percentage": 5.305468465689469
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 69.60680620155041,
+                    "delta_percentage": 5.387418448985927
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 70.05149612403108,
+                    "delta_percentage": 5.618217598078275
+                  }
+                }
+              }
+            },
+            "baseline_cpu_utilization_vcpus_total": {
+              "vmlinux-4.14.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 85.69688888888906,
+                    "delta_percentage": 4.460914575146501
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 85.63709722222241,
+                    "delta_percentage": 4.494506685937885
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 85.60479166666686,
+                    "delta_percentage": 4.368619156190522
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 85.3860833333335,
+                    "delta_percentage": 4.406117808800381
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 170.92915555555592,
+                    "delta_percentage": 4.349504924506464
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 171.02965185185224,
+                    "delta_percentage": 4.4516470857802
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 171.09800000000038,
+                    "delta_percentage": 4.780615103975543
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 170.78558518518554,
+                    "delta_percentage": 4.416725813134293
+                  }
+                }
+              },
+              "vmlinux-4.9.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 85.71059420289873,
+                    "delta_percentage": 4.5151657186721055
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 85.44579710144944,
+                    "delta_percentage": 4.558268126962479
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 85.46965217391322,
+                    "delta_percentage": 4.5208183115703715
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 85.39334782608712,
+                    "delta_percentage": 4.391823096696255
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 170.80782170542673,
+                    "delta_percentage": 4.449537349387811
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 170.86121705426393,
+                    "delta_percentage": 4.4248530246466995
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 170.8807209302329,
+                    "delta_percentage": 4.472526267161145
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 170.78050387596934,
+                    "delta_percentage": 4.358377168510974
+                  }
+                }
+              }
+            },
+            "baseline_iops_read": {
+              "vmlinux-4.14.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 38453.19795150502,
+                    "delta_percentage": 5.79464528327309
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 77841.14850938313,
+                    "delta_percentage": 5.574587997827667
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 78045.3066675957,
+                    "delta_percentage": 5.54427696603241
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 38591.64869007804,
+                    "delta_percentage": 5.132937550659422
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 77384.10040976093,
+                    "delta_percentage": 7.903875478739229
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 157315.69065328874,
+                    "delta_percentage": 8.69755579709477
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 159629.15692555433,
+                    "delta_percentage": 7.786196410424141
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 77704.13125653412,
+                    "delta_percentage": 8.183134552016245
+                  }
+                }
+              },
+              "vmlinux-4.9.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 50048.16417042315,
+                    "delta_percentage": 7.067232766844189
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 100509.88832339684,
+                    "delta_percentage": 11.587787601528937
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 101104.08332121564,
+                    "delta_percentage": 9.531694330724076
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 49332.08523144782,
+                    "delta_percentage": 10.952355300485447
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 109655.89448082757,
+                    "delta_percentage": 16.365192867965188
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 184726.98382411656,
+                    "delta_percentage": 16.280943557913776
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 179658.76730652564,
+                    "delta_percentage": 7.408525571304546
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 90852.10823442483,
+                    "delta_percentage": 13.131447213758488
+                  }
+                }
+              }
+            },
+            "baseline_bw_read": {
+              "vmlinux-4.14.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 153813.08740059458,
+                    "delta_percentage": 5.7946116141092565
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 311364.8299303233,
+                    "delta_percentage": 5.574581525324579
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 312181.4840203456,
+                    "delta_percentage": 5.54428247606192
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 154366.85158862875,
+                    "delta_percentage": 5.1329094307734495
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 309534.98737643997,
+                    "delta_percentage": 7.9041598434083875
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 629263.4970660226,
+                    "delta_percentage": 8.697605777796149
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 638516.5557339279,
+                    "delta_percentage": 7.785960053333801
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 310815.0813204509,
+                    "delta_percentage": 8.181610419137268
+                  }
+                }
+              },
+              "vmlinux-4.9.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 200193.5484949833,
+                    "delta_percentage": 7.0672278809346825
+                  },
+                  "randread-bs4096-1vcpu": {
+                    "target": 402040.6118947215,
+                    "delta_percentage": 11.58773447098851
+                  },
+                  "read-bs4096-1vcpu": {
+                    "target": 404417.34986185835,
+                    "delta_percentage": 9.531672381472323
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 197329.39222820027,
+                    "delta_percentage": 10.952327554481208
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 438622.10317207227,
+                    "delta_percentage": 16.36504619145402
+                  },
+                  "randread-bs4096-2vcpu": {
+                    "target": 738903.3198498872,
+                    "delta_percentage": 16.281131190804427
+                  },
+                  "read-bs4096-2vcpu": {
+                    "target": 718629.1826561406,
+                    "delta_percentage": 7.40888559321054
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 363408.2499092583,
+                    "delta_percentage": 13.132346879532795
+                  }
+                }
+              }
+            },
+            "baseline_iops_write": {
+              "vmlinux-4.14.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 38457.524476495724,
+                    "delta_percentage": 5.800471456626848
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 38586.708612040136,
+                    "delta_percentage": 5.105174780939007
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 77385.55934299517,
+                    "delta_percentage": 7.917254553658344
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 77695.61076179858,
+                    "delta_percentage": 8.1753729916096
+                  }
+                }
+              },
+              "vmlinux-4.9.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 50048.09568125636,
+                    "delta_percentage": 7.088461736932393
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 49335.32212786583,
+                    "delta_percentage": 10.993169439920399
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 109657.22198491094,
+                    "delta_percentage": 16.374894418401066
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 90851.68251354645,
+                    "delta_percentage": 13.09869345001849
+                  }
+                }
+              }
+            },
+            "baseline_bw_write": {
+              "vmlinux-4.14.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 153830.38763331476,
+                    "delta_percentage": 5.800453845214285
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 154347.09225195093,
+                    "delta_percentage": 5.10513881932382
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 309543.790052273,
+                    "delta_percentage": 7.91741143443101
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 310783.1564503902,
+                    "delta_percentage": 8.175412950425356
+                  }
+                }
+              },
+              "vmlinux-4.9.bin": {
+                "ubuntu-18.04.ext4": {
+                  "randrw-bs4096-1vcpu": {
+                    "target": 200193.27322960593,
+                    "delta_percentage": 7.088425946354754
+                  },
+                  "readwrite-bs4096-1vcpu": {
+                    "target": 197342.34056468421,
+                    "delta_percentage": 10.993174786165302
+                  },
+                  "randrw-bs4096-2vcpu": {
+                    "target": 438631.1672492287,
+                    "delta_percentage": 25.375288822930607
+                  },
+                  "readwrite-bs4096-2vcpu": {
+                    "target": 363409.2195823287,
+                    "delta_percentage": 13.098384164071305
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
