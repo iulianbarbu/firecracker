@@ -3,6 +3,8 @@
 """Some common defines used in different modules of the testing framework."""
 
 from pathlib import Path
+import os
+
 
 API_USOCKET_URL_PREFIX = 'http+unix://'
 """URL prefix used for the API calls through a UNIX domain socket."""
@@ -20,3 +22,10 @@ MICROVM_KERNEL_RELPATH = 'kernel/'
 """Relative path to the location of the kernel file."""
 MICROVM_FSFILES_RELPATH = 'fsfiles/'
 """Relative path to the location of the filesystems."""
+SPEC_S3_BUCKET = 'spec.ccfc.min'
+"""The s3 bucket that holds global Firecracker specifications."""
+DEFAULT_TEST_IMAGES_S3_BUCKET = 'spec.ccfc.min'
+"""The default s3 bucket that holds Firecracker microvm test images."""
+ENV_TEST_IMAGES_S3_BUCKET = 'TEST_MICROVM_IMAGES_S3_BUCKET'
+"""Global directory for any of the pytest tests temporary files."""
+DEFAULT_TEST_SESSION_ROOT_PATH = "/srv"
