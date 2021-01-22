@@ -18,7 +18,7 @@ from framework.artifacts import DEFAULT_HOST_IP
 
 
 PING = "ping -c {} -i {} {}"
-BASELINES = {
+LATENCY_AVG_BASELINES = {
     "x86_64": {
         "target": 0.250,  # milliseconds
         "delta": 0.020  # milliseconds
@@ -32,33 +32,39 @@ LATENCY = "latency"
 
 def pass_criteria():
     """Define pass criteria for the statistics."""
-    delta = BASELINES[platform.machine()]["delta"]
-    target = BASELINES[platform.machine()]["target"]
+    delta = LATENCY_AVG_BASELINES[platform.machine()]["delta"]
+    target = LATENCY_AVG_BASELINES[platform.machine()]["target"]
 
     return {
-        function.Avg.name(): criteria.EqualWith(target, delta)
+        function.Avg.__name__: criteria.EqualWith(LATENCY_AVG_BASELINES[
+                                                      platform.machine()])
     }
 
 
 def measurements():
     """Define the produced measurements."""
-    return [types.MeasurementDef(LATENCY, "millisecond"),
+    return [types.MeasurementDef(LATENCY, "ms"),
             types.MeasurementDef(PKT_LOSS, "percentage")]
 
 
 def stats():
     """Define statistics based on the measurements."""
     # Add default statistics for "latency" measurement.
-    stats_defs = types.StatisticDef.defaults(LATENCY,
-                                             [function.Min, function.Stddev,
-                                              function.Max, function.Avg,
-                                              function.Percentile50,
-                                              function.Percentile90,
-                                              function.Percentile99],
-                                             pass_criteria())
-    stats_defs.append(consumer.StatisticDef(PKT_LOSS_STAT_KEY,
-                                            PKT_LOSS,
-                                            function.GetFirstObservation))
+    stats_defs = types.StatisticDef.defaults(
+        LATENCY,
+        # We are going to consume multiple statistics
+        [function.ValuePlaceholder(function.Avg.__name__),
+         function.ValuePlaceholder(function.Min.__name__),
+         function.ValuePlaceholder(function.Max.__name__),
+         function.ValuePlaceholder(function.Stddev.__name__),
+         function.ValuePlaceholder(function.Percentile99.__name__),
+         function.ValuePlaceholder(function.Percentile90.__name__),
+         function.ValuePlaceholder(function.Percentile50.__name__)],
+        pass_criteria())
+    stats_defs.extend(types.StatisticDef.defaults(
+        PKT_LOSS,
+        [function.ValuePlaceholder(name=PKT_LOSS_STAT_KEY)]))
+
     return stats_defs
 
 
@@ -79,10 +85,10 @@ def consume_ping_output(cons, raw_data, requests):
     eager_map(cons.set_measurement_def, measurements())
     eager_map(cons.set_stat_def, stats())
 
-    st_keys = [function.Min.name(),
-               function.Avg.name(),
-               function.Max.name(),
-               function.Stddev.name()]
+    st_keys = [function.Min.__name__,
+               function.Avg.__name__,
+               function.Max.__name__,
+               function.Stddev.__name__]
 
     output = raw_data.strip().split('\n')
     assert len(output) > 2
@@ -118,13 +124,13 @@ def consume_ping_output(cons, raw_data, requests):
         times.append(time[0])
 
     times.sort()
-    cons.consume_stat(st_name=function.Percentile50.name(),
+    cons.consume_stat(st_name=function.Percentile50.__name__,
                       ms_name=LATENCY,
                       value=times[int(requests * 0.5)])
-    cons.consume_stat(st_name=function.Percentile90.name(),
+    cons.consume_stat(st_name=function.Percentile90.__name__,
                       ms_name=LATENCY,
                       value=times[int(requests * 0.9)])
-    cons.consume_stat(st_name=function.Percentile99.name(),
+    cons.consume_stat(st_name=function.Percentile99.__name__,
                       ms_name=LATENCY,
                       value=times[int(requests * 0.99)])
 
@@ -208,9 +214,9 @@ def _g2h_send_ping(context):
     custom = {"microvm": context.microvm.name(),
               "kernel": context.kernel.name(),
               "disk": context.disk.name()}
+
     st_core = core.Core(name="network_latency", iterations=1, custom=custom)
     cons = consumer.LambdaConsumer(
-        consume_stats=True,
         func=consume_ping_output,
         func_kwargs={"requests": context.custom['requests']}
     )
