@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests checking against the existence of licenses in each file."""
 
+from datetime import datetime
 import framework.utils as utils
 
-AMAZON_COPYRIGHT_YEARS = (2018, 2019, 2020)
+AMAZON_COPYRIGHT_YEARS = range(2018, datetime.now().year + 1)
 AMAZON_COPYRIGHT = (
     "Copyright {} Amazon.com, Inc. or its affiliates. All Rights Reserved."
 )
