@@ -2,15 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 """Module for common types definitions."""
-
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
 from typing import List
 from .criteria import ComparisonCriteria
-from .function import StatisticFunction, Max, Min, \
-    Stddev, Percentile50, Percentile90, Percentile99, Avg, Sum, \
-    GetFirstObservation
+from .function import Function
 
 
 class DefaultMeasurement(Enum):
@@ -48,107 +45,32 @@ class MeasurementDef:
 class StatisticDef:
     """Statistic definition data class."""
 
-    _name: str
     measurement_name: str
-    func_cls: StatisticFunction
-    criteria: ComparisonCriteria = None
+    func: Function
+    pass_criteria: ComparisonCriteria = None
 
-    @classmethod
-    def max(cls, ms_name: str,
-            st_name: str = None,
-            criteria: ComparisonCriteria = None):
-        """Return max statistics definition."""
-        return StatisticDef(st_name,
-                            ms_name,
-                            Max,
-                            criteria)
-
-    @classmethod
-    def min(cls, ms_name: str,
-            st_name: str = None,
-            criteria: ComparisonCriteria = None):
-        """Return min statistics definition."""
-        return StatisticDef(st_name,
-                            ms_name,
-                            Min,
-                            criteria)
-
-    @classmethod
-    def avg(cls, ms_name: str,
-            st_name: str = None,
-            criteria: ComparisonCriteria = None):
-        """Return average statistics definition."""
-        return StatisticDef(st_name,
-                            ms_name,
-                            Avg,
-                            criteria)
-
-    @classmethod
-    def sum(cls, ms_name: str,
-            st_name: str = None,
-            criteria: ComparisonCriteria = None):
-        """Return average statistics definition."""
-        return StatisticDef(st_name,
-                            ms_name,
-                            Sum,
-                            criteria)
-
-    @classmethod
-    def stddev(cls, ms_name: str,
-               st_name: str = None,
-               criteria: ComparisonCriteria = None):
-        """Return standard deviation statistics definition."""
-        return StatisticDef(st_name,
-                            ms_name,
-                            Stddev,
-                            criteria)
-
-    @classmethod
-    def p50(cls, ms_name: str,
-            st_name: str = None,
-            criteria: ComparisonCriteria = None):
-        """Return 50th percentile statistics definition."""
-        return StatisticDef(st_name,
-                            ms_name,
-                            Percentile50,
-                            criteria)
-
-    @classmethod
-    def p90(cls, ms_name: str,
-            st_name: str = None,
-            criteria: ComparisonCriteria = None):
-        """Return 90th percentile statistics definition."""
-        return StatisticDef(st_name,
-                            ms_name,
-                            Percentile90,
-                            criteria)
-
-    @classmethod
-    def p99(cls, ms_name: str, st_name: str = None,
-            criteria: ComparisonCriteria = None):
-        """Return 99th percentile statistics definition."""
-        return StatisticDef(st_name,
-                            ms_name,
-                            Percentile99,
-                            criteria)
-
-    @classmethod
-    def get_first_observation(cls, ms_name: str,
-                              st_name: str = None,
-                              criteria: ComparisonCriteria = None):
-        """Return first observation of the exercise."""
-        return StatisticDef(st_name,
-                            ms_name,
-                            GetFirstObservation,
-                            criteria)
+    @property
+    def name(self) -> str:
+        """Return the name used to identify the statistic definition."""
+        return self.func.name
 
     @classmethod
     def defaults(cls,
                  measurement_name: str,
-                 functions: List[StatisticFunction],
-                 pass_criteria: dict = None) \
-            -> List['StatisticDef']:
-        """Return list with default statistics definitions."""
+                 functions: List[Function],
+                 pass_criteria: dict = None) -> List['StatisticDef']:
+        """Return list with default statistics definitions.
+
+        The expected `pass_criteria` dict is a dictionary with the following
+        format:
+        {
+            # Statistic name explicitly provided in statistics definitions or
+            # inherited from statistic functions (e.g Avg, Min, Max etc.).
+            "key": str,
+            # The comparison criteria used for pass/failure.
+            "value": statistics.criteria.ComparisonCriteria,
+        }
+        """
         if pass_criteria is None:
             pass_criteria = defaultdict()
         else:
@@ -156,17 +78,8 @@ class StatisticDef:
 
         default_stats = list()
         for function in functions:
-            function_name = function.name()
             default_stats.append(
-                getattr(StatisticDef, function_name)(
-                    ms_name=measurement_name,
-                    criteria=pass_criteria.get(function_name)
-                ))
+                StatisticDef(measurement_name=measurement_name,
+                             func=function,
+                             pass_criteria=pass_criteria.get(function.name)))
         return default_stats
-
-    @property
-    def name(self):
-        """Return the name used to identify the statistic definition."""
-        if not self._name:
-            self._name = self.func_cls.name()
-        return self._name

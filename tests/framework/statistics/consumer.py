@@ -4,48 +4,54 @@
 """Module for multiple statistics consumers."""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from numbers import Number
+from typing import Any, Callable
 from collections import defaultdict
-from .types import MeasurementDef, StatisticDef
+
+from .metadata import Provider as MetadataProvider
 from .criteria import Failed
+from .types import StatisticDef, MeasurementDef
 
 
 class Consumer(ABC):
     """Base class for statistics aggregation class."""
 
-    UNIT_KEY = "unit"
-    DATA_KEY = "data"
+    UNIT_KEY = "_unit"
+    DATA_KEY = "_data"
 
     # pylint: disable=W0102
     def __init__(self,
-                 consume_stats,
+                 metadata_provider: MetadataProvider = None,
                  custom=None):
         """Initialize a consumer."""
-        self._results = defaultdict()  # Aggregated results.
-        self._measurements_defs = defaultdict(MeasurementDef)
-        self._statistics_defs = defaultdict()
-        self._consume_stats = consume_stats
-        self._custom = dict() if not custom else custom
-        self._statistics = dict()
         self._iteration = 0
+        self._results = defaultdict()  # Aggregated results.
+        self._custom = dict() if not custom else custom
+        self._metadata_provider = metadata_provider
+        self._statistics_defs = dict()
+        self._measurements_defs = dict()
+
+        if metadata_provider:
+            self._statistics_defs = metadata_provider.statistics
+            self._measurements_defs = metadata_provider.measurements
+
+        # Final statistics.
+        self._statistics = dict()
 
     @abstractmethod
     def ingest(self, iteration: int, raw_data: Any):
         """Abstract method for ingesting the raw result."""
 
-    def consume_stat(self, st_name: str, ms_name: str, value: Any):
+    def consume_stat(self, st_name: str, ms_name: str, value: Number):
         """Aggregate statistics."""
         results = self._results.get(ms_name)
         if not results:
             self._results[ms_name] = dict()
         st_data = self._results[ms_name].get(st_name)
         if not st_data:
-            self._results[ms_name][st_name] = list()
-        self._results[ms_name][st_name].append(value)
+            self._results[ms_name][st_name] = value
 
-    def consume_measurement(self,
-                            ms_name: str,
-                            value: Any):
+    def consume_measurement(self, ms_name: str, value: Number):
         """Aggregate measurement."""
         results = self._results.get(ms_name)
         if not results:
@@ -53,7 +59,7 @@ class Consumer(ABC):
             self._results[ms_name][self.DATA_KEY] = list()
         self._results[ms_name][self.DATA_KEY].append(value)
 
-    def consume_custom(self, name, value: Any):
+    def consume_custom(self, name, value: Number):
         """Aggregate custom information."""
         if not self._custom.get(self._iteration):
             self._custom[self._iteration] = dict()
@@ -79,65 +85,66 @@ class Consumer(ABC):
 
         is backed by corresponding measurements definitions.
         """
+
         for ms_name in self._statistics_defs:
+            assert len(self._statistics_defs[ms_name]) > 0, \
+                f"There is no defined statistic for '{ms_name}'."
             if ms_name not in self._measurements_defs:
-                assert False, f"'{ms_name}' can not be found in measurements" \
-                              " definitions."
+                raise Exception(f"Statistics are defined for '{ms_name}' but "
+                                "there is no corresponding measurement "
+                                "definition.")
 
-        if self._consume_stats:
-            # Verify if the gathered results for a measurement are
-            # backed by measurements definitions.
-            for ms_name in self._results:
-                if ms_name not in self._measurements_defs:
-                    assert False, f"'{ms_name}' can not be found in " \
-                                  "measurements definitions."
-                # Verify if the gathered statistics are backed by
-                # statistics definitions.
-                for st_name in self._results[ms_name]:
-                    if st_name not in self._statistics_defs[ms_name]:
-                        assert False, f"'{st_name}' can not be found in " \
-                                      "statistics definitions."
-        else:
-            # Verify if the gathered measurements are backed by
-            # measurements definitions.
-            for ms_name in self._results:
-                if ms_name not in self._measurements_defs:
-                    assert False, f"'{ms_name}' can not be found in " \
-                                  "measurements definitions."
+        for ms_name in self._measurements_defs:
+            if ms_name not in self._statistics_defs:
+                raise Exception(f"Measurement definition for '{ms_name}' "
+                                f"does not have corresponding statistic "
+                                "definition.")
 
-            # Verify if the defined statistics have corresponding
-            # gathered measurements.
-            for ms_name in self._statistics_defs:
-                if ms_name not in self._results:
-                    assert False, f"'{ms_name}' can not be found in " \
-                                  "the consumed measurements."
+        for ms_name in self._results:
+            if ms_name not in self._measurements_defs:
+                raise Exception(f"'{ms_name}' measurement does not have a "
+                                "corresponding measurement definition.")
 
-    def process(self, verify_criteria=True) -> (dict, dict):
+        # Verify if the gathered measurements are backed by
+        # measurements definitions.
+        for ms_name in self._results:
+            if ms_name not in self._statistics_defs:
+                raise Exception(f"'{ms_name}' measurement does not have a "
+                                "corresponding statistics definitions.")
+
+    def check_pass_criteria(self, ms_name: str, st_name: str):
+        """Check pass criteria."""
+        pass_criteria = self._statistics_defs[ms_name][st_name].pass_criteria
+        if pass_criteria:
+            res = self._statistics[ms_name][st_name]
+            try:
+                pass_criteria.check(res)
+            except Failed as err:
+                # pylint: disable=W0707
+                raise Failed(msg=f"'{ms_name}/{st_name}':"
+                                 f" {err.msg}")
+
+    def process(self, check_criteria=True) -> (dict, dict):
         """Generate statistics as a dictionary."""
         self._validate()
-        # Generate consumer stats.
-        for ms_name in self._statistics_defs:
+        for ms_name in self._results:
             self._statistics.setdefault(ms_name, {})[self.UNIT_KEY] \
                 = self._measurements_defs[ms_name].unit
-            for st_name in self._statistics_defs[ms_name]:
-                # We can either consume directly statistics, or compute them
-                # based on measurements.
-                stat = self._statistics_defs[ms_name][st_name]
-                if self._consume_stats:
-                    self._statistics[ms_name][st_name] = \
-                        stat.func_cls(self._results[ms_name][st_name])()
-                else:
-                    self._statistics[ms_name][st_name] = \
-                        stat.func_cls(self._results[ms_name][self.DATA_KEY])()
 
-                # Check pass criteria.
-                if stat.criteria and verify_criteria:
-                    res = self._statistics[ms_name][st_name]
-                    try:
-                        stat.criteria.check(res)
-                    except Failed as err:
-                        # pylint: disable=W0707
-                        raise Failed(msg=f"'{ms_name}/{st_name}': {err.msg}")
+            for st_name in self._statistics_defs[ms_name]:
+                if st_name not in self._results[ms_name]:
+                    assert Consumer.DATA_KEY in self._results[ms_name], \
+                        f"Results does not have extracted data points for " \
+                        f"{ms_name} measurement."
+                    self._statistics[ms_name][st_name] = \
+                        self._statistics_defs[ms_name][st_name].func(
+                            self._results[ms_name][self.DATA_KEY])
+                else:
+                    self._statistics[ms_name][st_name] = self._results[
+                        ms_name][st_name]
+
+                    if check_criteria:
+                        self.check_pass_criteria(ms_name, st_name)
 
         return self._statistics, self._custom
 
@@ -146,16 +153,15 @@ class LambdaConsumer(Consumer):
     """Consumer which executes a function in the ingestion step.
 
     The function called in the ingestion step must have the following
-    signature: `def func(cons: Consumer, raw_output: Any, *args)`.
+    signature: `def func_name(cons: Consumer, raw_output: Any, **kw_args)`.
     """
 
     def __init__(self,
-                 consume_stats,
-                 func,
-                 func_kwargs=None):
+                 func: Callable,
+                 func_kwargs=None,
+                 metadata_provider: MetadataProvider = None):
         """Initialize the LambdaConsumer."""
-        super().__init__(consume_stats)
-        assert callable(func)
+        super().__init__(metadata_provider)
         self._func = func
         self._func_kwargs = func_kwargs
 
