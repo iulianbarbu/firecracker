@@ -1,7 +1,7 @@
 # Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-"""Module for comparision criteria."""
+"""Module for comparison criteria."""
 
 from abc import ABC, abstractmethod
 from pydoc import locate
@@ -65,8 +65,12 @@ class ComparisonCriteria(ABC):
         return self._name
 
     @property
-    def baseline(self):
-        return self._baseline
+    def target(self):
+        target = self._baseline.get("target")
+        if not target:
+            raise Failed("Baseline target not defined.")
+
+        return target
 
 
 # pylint: disable=R0903
@@ -79,14 +83,9 @@ class GreaterThan(ComparisonCriteria):
 
     def check(self, actual):
         """Compare the target and the actual."""
-        target = self.baseline.get("target")
-        if not target:
-            raise Failed("Baseline target not defined.")
-
-        fail_msg = self.name + f" failed. Target: '{target} " \
+        fail_msg = self.name + f" failed. Target: '{self.target} " \
                                f"vs Actual: '{actual}'."
-
-        if actual < target:
+        if actual < self.target:
             raise Failed(msg=fail_msg)
 
 
@@ -100,14 +99,9 @@ class LowerThan(ComparisonCriteria):
 
     def check(self, actual):
         """Compare the target and the actual."""
-        target = self.baseline.get("target")
-        if not target:
-            raise Failed("Baseline target not defined.")
-
-        fail_msg = self.name + f" failed. Target: '{target} " \
+        fail_msg = self.name + f" failed. Target: '{self.target} " \
                                f"vs Actual: '{actual}'."
-
-        if actual > target:
+        if actual > self.target:
             raise Failed(msg=fail_msg)
 
 
@@ -130,18 +124,17 @@ class EqualWith(ComparisonCriteria):
         """Initialize the criteria."""
         super().__init__("EqualWith", baseline)
 
-    def check(self, actual):
-        """Compare the target and the actual."""
-        target = self.baseline.get("target")
-        if not target:
-            raise Failed("Baseline target not defined.")
-
-        delta = self.baseline.get("delta")
+    @property
+    def delta(self):
+        """Return the `delta` field of the baseline."""
+        delta = self._baseline.get("delta")
         if not delta:
             raise Failed("Baseline delta not defined.")
+        return delta
 
-        fail_msg = self.name + f" failed. Target: '{target} +- " \
-                               f"{delta}' vs Actual: '{actual}'."
-
-        if abs(target - actual) > delta:
+    def check(self, actual):
+        """Compare the target and the actual."""
+        fail_msg = self.name + f" failed. Target: '{self.target} +- " \
+                               f"{self.delta}' vs Actual: '{actual}'."
+        if abs(self.target - actual) > self.delta:
             raise Failed(msg=fail_msg)

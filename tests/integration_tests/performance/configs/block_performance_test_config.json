@@ -13,62 +13,72 @@
     "readwrite"
   ],
   "measurements": {
-    "bw_read": "KiB/s",
-    "bw_write": "KiB/s",
-    "iops_read": "io/s",
-    "iops_write": "io/s",
-    "cpu_utilization_vmm": "percentage",
-    "cpu_utilization_vcpus_total": "percentage"
-  },
-  "statistics": {
-    "bw_read": [
-      {
-        "function": "Avg",
-        "criteria": "EqualWith"
-      },
-      {
-        "function": "Stddev"
-      }
-    ],
-    "bw_write": [
-      {
-        "function": "Avg",
-        "criteria": "EqualWith"
-      },
-      {
-        "function": "Stddev"
-      }
-    ],
-    "iops_read": [
-      {
-        "function": "Avg",
-        "criteria": "EqualWith"
-      },
-      {
-        "function": "Stddev"
-      }
-    ],
-    "iops_write": [
-      {
-        "function": "Avg",
-        "criteria": "EqualWith"
-      },
-      {
-        "function": "Stddev"
-      }
-    ],
-    "cpu_utilization_vmm": [
-      {
-        "function": "ValuePlaceholder",
-        "criteria": "EqualWith"
-      }
-    ],
-    "cpu_utilization_vcpus_total": [
-      {
-        "function": "ValuePlaceholder",
-        "criteria": "EqualWith"
-      }
-    ]
+    "bw_read": {
+      "unit": "KiB/s",
+      "statistics": [
+        {
+          "function": "Avg",
+          "criteria": "EqualWith"
+        },
+        {
+          "function": "Stddev"
+        }
+      ]
+    },
+    "bw_write": {
+      "unit": "KiB/s",
+      "statistics": [
+        {
+          "function": "Avg",
+          "criteria": "EqualWith"
+        },
+        {
+          "function": "Stddev"
+        }
+      ]
+    },
+    "iops_read": {
+      "unit": "io/s",
+      "statistics": [
+        {
+          "function": "Avg",
+          "criteria": "EqualWith"
+        },
+        {
+          "function": "Stddev"
+        }
+      ]
+    },
+    "iops_write": {
+      "unit": "io/s",
+      "statistics": [
+        {
+          "function": "Avg",
+          "criteria": "EqualWith"
+        },
+        {
+          "function": "Stddev"
+        }
+      ]
+    },
+    "cpu_utilization_vmm": {
+      "unit": "percentage",
+      "statistics": [
+        {
+          "function": "ValuePlaceholder",
+          "criteria": "EqualWith"
+        }
+      ]
+    },
+    "cpu_utilization_vcpus_total": {
+      "unit": "percentage",
+      "statistics": [
+        {
+          "function": "ValuePlaceholder",
+          "criteria": "EqualWith"
+        }
+      ]
+    }
   },
   "hosts": {
     "instances": {

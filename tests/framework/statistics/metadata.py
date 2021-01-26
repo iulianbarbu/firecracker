@@ -12,30 +12,26 @@ from framework.statistics.baseline import Provider as BaselineProvider
 class Provider(ABC):
     """Backend for test metadata retrieval.
 
-    Metadata consists from measurements and statistis definitions.
+    Metadata consists from measurements and statistics definitions.
     """
 
     def __init__(self):
         self._measurements = dict()
-        self._statistics = dict()
 
     @property
     @abstractmethod
     def measurements(self):
         """Return measurement dictionary."""
 
-    @property
-    @abstractmethod
-    def statistics(self):
-        """Return statistics dictionary."""
-
 
 class DictProvider(Provider):
     """Backend for test metadata retrieval."""
 
+    UNIT_KEY = "unit"
+    STATISTICS_KEY = "statistics"
+
     def __init__(self,
                  measurements: dict,
-                 statistics: dict,
                  baseline_provider: BaselineProvider):
 
         """
@@ -47,26 +43,7 @@ class DictProvider(Provider):
         "measurements": {
             "$id": "MEASUREMENTS_SCHEMA"
             "type": "object",
-            "properties": {
-                "key": {
-                    "type": "string",
-                    "description": "Measurement name."
-                },
-                "value": {
-                    "type": "string",
-                    "description": "Measurement unit."
-                }
-            }
-        }
-        ```
-
-        The provider expects to receive statistics following the below schema:
-
-        ```
-        "statistics": {
-            "$id": "STATISTICS_SCHEMA"
-            "type": "object",
-            "definitions": {
+            "definitions": "definitions": {
                 "Criteria": {
                     "type": "string",
                     "description": "Comparison criteria class name. They are
@@ -102,39 +79,62 @@ class DictProvider(Provider):
                     "description": "Measurement name."
                 },
                 "value": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/StatisticDef"
+                    "type": "object",
+                    "properties": {
+                        "unit": "string",
+                        "statistics": {
+                            "type": "object",
+                            "properties": {
+                                "key": {
+                                    "type": "string",
+                                    "description": "Statistic name."
+                                },
+                                "value": {
+                                    "type": "object",
+                                    "$ref": "#/definitions/StatisticDef"
+                                }
+                            }
+                        }
                     }
                 }
+            }
         }
+        ```
         """
         super().__init__()
-        self._measurements = {key: MeasurementDef(key, measurements[
-            key]) for key in measurements}
+        for ms_name in measurements:
+            assert DictProvider.UNIT_KEY in measurements[ms_name], \
+                f"'{DictProvider.UNIT_KEY}' field is required for '" \
+                f"{ms_name}' measurement definition."
+            assert DictProvider.STATISTICS_KEY in measurements[ms_name], \
+                f"'{DictProvider.STATISTICS_KEY}' field is required for '" \
+                f"{ms_name}' measurement definition."
 
-        for ms_name in statistics:
-            assert ms_name in self._measurements, \
-                f"'{ms_name}' can not be found in measurements definitions."
+            unit = measurements[ms_name][DictProvider.UNIT_KEY]
+            st_defs = measurements[ms_name][DictProvider.STATISTICS_KEY]
 
-            self._statistics[ms_name] = dict()
-            for stat_def in statistics[ms_name]:
+            st_list = list()
+            for st_def in st_defs:
                 # Mandatory.
-                func_cls_name = stat_def.get("function")
-                assert func_cls_name, "'function' field is required for " \
-                                      "statistic definition."
+                func_cls_name = st_def.get("function")
+                assert func_cls_name, f"Error in '{ms_name}' " \
+                                      "measurement definition: " \
+                                      "'function' field is required for " \
+                                      "measurement statistics definitions."
 
                 func_cls = FunctionFactory.get(func_cls_name)
-                assert func_cls, f"'{func_cls_name}' is not a valid " \
-                                 f"statistic function."
+                assert func_cls_name, f"Error in '{ms_name}' " \
+                                      "measurement definition: " \
+                                      f"'{func_cls_name}' is not a valid " \
+                                      f"statistic function."
 
-                name = stat_def.get("name")
+                name = st_def.get("name")
                 func = func_cls()
                 if name:
                     func = func_cls(name)
 
                 criteria = None
-                criteria_cls_name = stat_def.get("criteria")
+                criteria_cls_name = st_def.get("criteria")
                 baseline = baseline_provider.get(ms_name, func.name)
                 if criteria_cls_name and baseline:
                     criteria_cls = CriteriaFactory.get(criteria_cls_name)
@@ -142,17 +142,12 @@ class DictProvider(Provider):
                                          f"valid criteria."
                     criteria = criteria_cls(baseline)
 
-                self._statistics[ms_name][func.name] = StatisticDef(
-                    measurement_name=ms_name,
-                    func=func,
-                    pass_criteria=criteria)
+                st_list.append(StatisticDef(func, criteria))
+
+            self._measurements[ms_name] = MeasurementDef(ms_name, unit,
+                                                         st_list)
 
     @property
     def measurements(self):
         """Return measurement dictionary."""
         return self._measurements
-
-    @property
-    def statistics(self):
-        """Return statistics dictionary."""
-        return self._statistics

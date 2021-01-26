@@ -14,10 +14,9 @@ from conftest import _test_images_s3_bucket
 from framework.artifacts import ArtifactCollection, ArtifactSet
 from framework.matrix import TestMatrix, TestContext
 from framework.builder import MicrovmBuilder
-from framework.statistics import core, consumer, producer, criteria
+from framework.statistics import core, consumer, producer
 from framework.statistics.baseline import Provider as BaselineProvider
 from framework.statistics.metadata import DictProvider as DictMetadataProvider
-from framework.statistics.types import DefaultMeasurement
 from framework.utils import CpuMap, CmdBuilder, run_cmd, get_cpu_percent, \
     DictQuery
 from framework.utils_cpuid import get_cpu_model_name
@@ -38,10 +37,8 @@ IPERF3 = "iperf3-vsock"
 THROUGHPUT = "throughput"
 DURATION = "duration"
 BASE_PORT = 5201
-CPU_UTILIZATION_VMM = \
-    f"{DefaultMeasurement.CPU_UTILIZATION_VMM.name.lower()}"
-CPU_UTILIZATION_VCPUS_TOTAL = \
-    f"{DefaultMeasurement.CPU_UTILIZATION_VCPUS_TOTAL.name.lower()}"
+CPU_UTILIZATION_VMM = "cpu_utilization_vmm"
+CPU_UTILIZATION_VCPUS_TOTAL = "cpu_utilization_vcpus_total"
 IPERF3_CPU_UTILIZATION_PERCENT_OUT_TAG = "cpu_utilization_percent"
 IPERF3_END_RESULTS_TAG = "end"
 TARGET_TAG = "target"
@@ -197,12 +194,12 @@ def consume_iperf_output(cons, result):
     """Consume iperf3 output result for TCP workload."""
     total_received = result[IPERF3_END_RESULTS_TAG]['sum_received']
     duration = float(total_received['seconds'])
-    cons.consume_measurement(DURATION, duration)
+    cons.consume_data(DURATION, duration)
 
     # Computed at the receiving end.
     total_recv_bytes = int(total_received['bytes'])
     tput = round((total_recv_bytes*8) / (1024*1024*duration), 2)
-    cons.consume_measurement(THROUGHPUT, tput)
+    cons.consume_data(THROUGHPUT, tput)
 
     cpu_util = result[IPERF3_END_RESULTS_TAG][
         IPERF3_CPU_UTILIZATION_PERCENT_OUT_TAG]

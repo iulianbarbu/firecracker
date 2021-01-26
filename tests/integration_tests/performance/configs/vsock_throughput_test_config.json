@@ -26,28 +26,36 @@
     }
   ],
   "measurements": {
-    "throughput": "Mbps",
-    "duration": "seconds",
-    "cpu_utilization_vmm": "percentage",
-    "cpu_utilization_vcpus_total": "percentage"
-  },
-  "statistics": {
-    "throughput": [{
-      "name": "total",
-      "function": "Sum",
-      "criteria": "EqualWith"
-    }],
-    "duration": [{
-      "function": "Avg"
-    }],
-    "cpu_utilization_vmm": [{
-      "name": "value",
-      "function": "ValuePlaceholder"
-    }],
-    "cpu_utilization_vcpus_total": [{
-      "name": "value",
-      "function": "ValuePlaceholder"
-    }]
+    "throughput": {
+      "unit": "Mbps",
+      "statistics": [{
+        "name": "total",
+        "function": "Sum",
+        "criteria": "EqualWith"
+      }]
+    },
+    "duration": {
+      "unit": "seconds",
+      "statistics": [{
+        "function": "Avg"
+      }]
+    },
+    "cpu_utilization_vmm": {
+      "unit": "percentage",
+      "statistics": [{
+        "name": "value",
+        "function": "ValuePlaceholder",
+        "criteria": "EqualWith"
+      }]
+    },
+    "cpu_utilization_vcpus_total": {
+      "unit": "percentage",
+      "statistics": [{
+        "name": "value",
+        "function": "ValuePlaceholder",
+        "criteria": "EqualWith"
+      }]
+    }
   },
   "hosts": {
     "instances": {

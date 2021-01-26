@@ -32,9 +32,6 @@ LATENCY = "latency"
 
 def pass_criteria():
     """Define pass criteria for the statistics."""
-    delta = LATENCY_AVG_BASELINES[platform.machine()]["delta"]
-    target = LATENCY_AVG_BASELINES[platform.machine()]["target"]
-
     return {
         function.Avg.__name__: criteria.EqualWith(LATENCY_AVG_BASELINES[
                                                       platform.machine()])
@@ -42,30 +39,27 @@ def pass_criteria():
 
 
 def measurements():
-    """Define the produced measurements."""
-    return [types.MeasurementDef(LATENCY, "ms"),
-            types.MeasurementDef(PKT_LOSS, "percentage")]
+    """Define measurements."""
 
-
-def stats():
-    """Define statistics based on the measurements."""
     # Add default statistics for "latency" measurement.
-    stats_defs = types.StatisticDef.defaults(
+    latency = types.MeasurementDef.create_measurement(
         LATENCY,
-        # We are going to consume multiple statistics
-        [function.ValuePlaceholder(function.Avg.__name__),
-         function.ValuePlaceholder(function.Min.__name__),
-         function.ValuePlaceholder(function.Max.__name__),
-         function.ValuePlaceholder(function.Stddev.__name__),
-         function.ValuePlaceholder(function.Percentile99.__name__),
-         function.ValuePlaceholder(function.Percentile90.__name__),
-         function.ValuePlaceholder(function.Percentile50.__name__)],
+        "ms"
+        [function.ValuePlaceholder("Avg"),
+         function.ValuePlaceholder("Min"),
+         function.ValuePlaceholder("Max"),
+         function.ValuePlaceholder("Stddev"),
+         function.ValuePlaceholder("Percentile99"),
+         function.ValuePlaceholder("Percentile90"),
+         function.ValuePlaceholder("Percentile50")],
         pass_criteria())
-    stats_defs.extend(types.StatisticDef.defaults(
+    pkt_loss = types.MeasurementDef(
         PKT_LOSS,
-        [function.ValuePlaceholder(name=PKT_LOSS_STAT_KEY)]))
+        "percentage"
+        [function.ValuePlaceholder(name=PKT_LOSS_STAT_KEY)]
+    )
 
-    return stats_defs
+    return [latency, pkt_loss]
 
 
 def consume_ping_output(cons, raw_data, requests):
@@ -83,12 +77,11 @@ def consume_ping_output(cons, raw_data, requests):
     rtt min/avg/max/mdev = 17.478/17.705/17.808/0.210 ms
     """
     eager_map(cons.set_measurement_def, measurements())
-    eager_map(cons.set_stat_def, stats())
 
-    st_keys = [function.Min.__name__,
-               function.Avg.__name__,
-               function.Max.__name__,
-               function.Stddev.__name__]
+    st_keys = ["Min",
+               "Avg",
+               "Max",
+               "Stddev"]
 
     output = raw_data.strip().split('\n')
     assert len(output) > 2
@@ -124,13 +117,13 @@ def consume_ping_output(cons, raw_data, requests):
         times.append(time[0])
 
     times.sort()
-    cons.consume_stat(st_name=function.Percentile50.__name__,
+    cons.consume_stat(st_name="Percentile50",
                       ms_name=LATENCY,
                       value=times[int(requests * 0.5)])
-    cons.consume_stat(st_name=function.Percentile90.__name__,
+    cons.consume_stat(st_name="Percentile90",
                       ms_name=LATENCY,
                       value=times[int(requests * 0.9)])
-    cons.consume_stat(st_name=function.Percentile99.__name__,
+    cons.consume_stat(st_name="Percentile99",
                       ms_name=LATENCY,
                       value=times[int(requests * 0.99)])
 

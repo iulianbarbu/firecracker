@@ -7,8 +7,6 @@ import logging
 import os
 from enum import Enum
 import shutil
-from numbers import Number
-
 import pytest
 
 from conftest import _test_images_s3_bucket
@@ -16,10 +14,9 @@ from framework import utils
 from framework.artifacts import ArtifactCollection, ArtifactSet
 from framework.builder import MicrovmBuilder
 from framework.matrix import TestContext, TestMatrix
-from framework.statistics import core, criteria
+from framework.statistics import core
 from framework.statistics.baseline import Provider as BaselineProvider
 from framework.statistics.metadata import DictProvider as DictMetadataProvider
-from framework.statistics.types import DefaultMeasurement
 from framework.utils import get_cpu_percent, CmdBuilder, DictQuery
 from framework.utils_cpuid import get_cpu_model_name
 import host_tools.drive as drive_tools
@@ -31,10 +28,9 @@ TEST_ID = "block_device_performance"
 FIO = "fio"
 
 # Measurements tags.
-CPU_UTILIZATION_VMM = DefaultMeasurement.CPU_UTILIZATION_VMM.name.lower()
-CPU_UTILIZATION_VMM_SAMPLES_TAG = f"{CPU_UTILIZATION_VMM}_samples"
-CPU_UTILIZATION_VCPUS_TOTAL = \
-    f"{DefaultMeasurement.CPU_UTILIZATION_VCPUS_TOTAL.name.lower()}"
+CPU_UTILIZATION_VMM = "cpu_utilization_vmm"
+CPU_UTILIZATION_VMM_SAMPLES_TAG = "cpu_utilization_vmm_samples"
+CPU_UTILIZATION_VCPUS_TOTAL = "cpu_utilization_vcpus_total"
 
 CONFIG_RAW_FILE = os.path.join(
     os.path.dirname(__file__),
@@ -148,16 +144,14 @@ def run_fio(env_id, basevm, ssh_conn, mode, bs):
             # We expect a single fc_vcpu thread tagged with
             # f`fc_vcpu {vcpu}`.
             tag = f"fc_vcpu {vcpu}"
-            cpu_utilization_prefix = \
-                DefaultMeasurement.CPU_UTILIZATION_VMM.name.lower()
             assert tag in cpu_load and len(cpu_load[tag]) == 1
             data = list(cpu_load[tag].values())[0]
             data_len = len(data)
 
             assert data_len == CONFIG["time"]
             if DEBUG:
-                result[f"{cpu_utilization_prefix}_samples_fc_vcpu_{vcpu}"] = \
-                    data
+                samples_tag = f"cpu_utilization_fc_vcpu_{vcpu}_samples"
+                result[samples_tag] = data
             vcpus_util += sum(data) / data_len
 
         result[CPU_UTILIZATION_VCPUS_TOTAL] = vcpus_util
@@ -227,7 +221,7 @@ def read_values(cons, numjobs, env_id, mode, bs, measurement):
                 value = sum(values[measurement_id][idx])
                 if DEBUG:
                     cons.consume_custom(measurement_id, value)
-                cons.consume_measurement(measurement_id, value)
+                cons.consume_data(measurement_id, value)
 
 
 def consume_fio_output(cons, result, numjobs, mode, bs, env_id):

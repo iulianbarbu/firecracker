@@ -29,33 +29,41 @@
     }
   ],
   "measurements": {
-    "throughput": "Mbps",
-    "duration": "seconds",
-    "retransmits": "#",
-    "cpu_utilization_vmm": "percentage",
-    "cpu_utilization_vcpus_total": "percentage"
-  },
-  "statistics": {
-    "throughput": [{
-      "name": "total",
-      "function": "Sum",
-      "criteria": "EqualWith"
-    }],
-    "duration": [{
-      "function": "Avg"
-    }],
-    "retransmits": [{
-      "name": "total",
-      "function": "Sum"
-    }],
-    "cpu_utilization_vmm": [{
-      "function": "ValuePlaceholder",
-      "criteria": "EqualWith"
-    }],
-    "cpu_utilization_vcpus_total": [{
-      "function": "ValuePlaceholder",
-      "criteria": "EqualWith"
-    }]
+    "throughput": {
+      "unit": "Mbps",
+      "statistics": [{
+        "name": "total",
+        "function": "Sum",
+        "criteria": "EqualWith"
+      }]
+    },
+    "duration": {
+      "unit": "seconds",
+      "statistics": [{
+        "function": "Avg"
+      }]
+    },
+    "retransmits": {
+      "unit": "#",
+      "statistics": [{
+        "name": "total",
+        "function": "Sum"
+      }]
+    },
+    "cpu_utilization_vmm": {
+      "unit": "percentage",
+      "statistics": [{
+        "function": "ValuePlaceholder",
+        "criteria": "EqualWith"
+      }]
+    },
+    "cpu_utilization_vcpus_total": {
+      "unit": "percentage",
+      "statistics": [{
+        "function": "ValuePlaceholder",
+        "criteria": "EqualWith"
+      }]
+    }
   },
   "hosts": {
     "instances": {
