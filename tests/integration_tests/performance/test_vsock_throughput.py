@@ -21,16 +21,11 @@ from framework.utils import CpuMap, CmdBuilder, run_cmd, get_cpu_percent, \
     DictQuery
 from framework.utils_cpuid import get_cpu_model_name
 import host_tools.network as net_tools
+from integration_tests.performance.configs import defs
 
 
-# Measurements units.
-CONFIG_RAW_FILE = os.path.join(
-    os.path.dirname(__file__),
-    'configs/vsock_throughput_test_config.json')
-
-with open(CONFIG_RAW_FILE) as config_raw:
-    CONFIG = json.load(config_raw)
-
+CONFIG = json.load(open(defs.CFG_LOCATION /
+                        "vsock_throughput_test_config.json"))
 SERVER_STARTUP_TIME = CONFIG["server_startup_time"]
 VSOCK_UDS_PATH = "v.sock"
 IPERF3 = "iperf3-vsock"
@@ -239,7 +234,6 @@ def pipes(basevm, current_avail_cpu, env_id):
                 cons = consumer.LambdaConsumer(
                     metadata_provider=DictMetadataProvider(
                         CONFIG["measurements"],
-                        CONFIG["statistics"],
                         VsockThroughputBaselineProvider(env_id, iperf3_id)),
                     func=consume_iperf_output
                 )

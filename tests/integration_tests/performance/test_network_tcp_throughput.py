@@ -7,10 +7,9 @@ import json
 import logging
 import time
 import concurrent.futures
-
 import pytest
-import os
 from conftest import _test_images_s3_bucket
+from integration_tests.performance.configs import defs
 from framework.artifacts import ArtifactCollection, ArtifactSet, \
     DEFAULT_HOST_IP
 from framework.matrix import TestMatrix, TestContext
@@ -39,14 +38,8 @@ IPERF3_END_RESULTS_TAG = "end"
 DEBUG_CPU_UTILIZATION_VMM_SAMPLES_TAG = "cpu_utilization_vmm_samples"
 DELTA_PERCENTAGE_TAG = "delta_percentage"
 TARGET_TAG = "target"
-
-# Measurements units.
-CONFIG_RAW_FILE = os.path.join(
-    os.path.dirname(__file__),
-    'configs/network_tcp_throughput_test_config.json')
-
-with open(CONFIG_RAW_FILE) as config_raw:
-    CONFIG = json.load(config_raw)
+CONFIG = json.load(open(defs.CFG_LOCATION /
+                        "network_tcp_throughput_test_config.json"))
 
 
 class NetTCPThroughputBaselineProvider(BaselineProvider):
@@ -264,7 +257,6 @@ def create_pipes_generator(basevm,
             cons = consumer.LambdaConsumer(
                 metadata_provider=DictMetadataProvider(
                     measurements=CONFIG["measurements"],
-                    statistics=CONFIG["statistics"],
                     baseline_provider=NetTCPThroughputBaselineProvider(
                         env_id, iperf3_id)),
                 func=consume_iperf_tcp_output,

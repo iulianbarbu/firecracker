@@ -10,18 +10,18 @@ import shutil
 import pytest
 
 from conftest import _test_images_s3_bucket
-from framework import utils
 from framework.artifacts import ArtifactCollection, ArtifactSet
 from framework.builder import MicrovmBuilder
 from framework.matrix import TestContext, TestMatrix
 from framework.statistics import core
 from framework.statistics.baseline import Provider as BaselineProvider
 from framework.statistics.metadata import DictProvider as DictMetadataProvider
-from framework.utils import get_cpu_percent, CmdBuilder, DictQuery
+from framework.utils import get_cpu_percent, CmdBuilder, DictQuery, run_cmd
 from framework.utils_cpuid import get_cpu_model_name
 import host_tools.drive as drive_tools
 import host_tools.network as net_tools  # pylint: disable=import-error
 import framework.statistics as st
+from integration_tests.performance.configs import defs
 
 DEBUG = False
 TEST_ID = "block_device_performance"
@@ -31,13 +31,8 @@ FIO = "fio"
 CPU_UTILIZATION_VMM = "cpu_utilization_vmm"
 CPU_UTILIZATION_VMM_SAMPLES_TAG = "cpu_utilization_vmm_samples"
 CPU_UTILIZATION_VCPUS_TOTAL = "cpu_utilization_vcpus_total"
-
-CONFIG_RAW_FILE = os.path.join(
-    os.path.dirname(__file__),
-    'configs/block_performance_test_config.json')
-
-with open(CONFIG_RAW_FILE) as config_raw:
-    CONFIG = json.load(config_raw)
+CONFIG = json.load(open(defs.CFG_LOCATION /
+                        "block_performance_test_config.json"))
 
 
 class BlockBaselinesProvider(BaselineProvider):
@@ -98,7 +93,7 @@ def run_fio(env_id, basevm, ssh_conn, mode, bs):
     assert rc == 0, stderr.read()
     assert stderr.read() == ""
 
-    utils.run_cmd("echo 3 > /proc/sys/vm/drop_caches")
+    run_cmd("echo 3 > /proc/sys/vm/drop_caches")
 
     rc, _, stderr = ssh_conn.execute_command(
         "echo 3 > /proc/sys/vm/drop_caches")
@@ -212,16 +207,16 @@ def read_values(cons, numjobs, env_id, mode, bs, measurement):
                     values[measurement_id][value_idx] = list()
                 values[measurement_id][value_idx].append(int(data[1].strip()))
 
-        for measurement_id in values:
-            for idx in values[measurement_id]:
-                # Discard data points which were not measured by all jobs.
-                if len(values[measurement_id][idx]) != numjobs:
-                    continue
+    for measurement_id in values:
+        for idx in values[measurement_id]:
+            # Discard data points which were not measured by all jobs.
+            if len(values[measurement_id][idx]) != numjobs:
+                continue
 
-                value = sum(values[measurement_id][idx])
-                if DEBUG:
-                    cons.consume_custom(measurement_id, value)
-                cons.consume_data(measurement_id, value)
+            value = sum(values[measurement_id][idx])
+            if DEBUG:
+                cons.consume_custom(measurement_id, value)
+            cons.consume_data(measurement_id, value)
 
 
 def consume_fio_output(cons, result, numjobs, mode, bs, env_id):
@@ -325,7 +320,6 @@ def fio_workload(context):
             st_cons = st.consumer.LambdaConsumer(
                 metadata_provider=DictMetadataProvider(
                     CONFIG["measurements"],
-                    CONFIG["statistics"],
                     BlockBaselinesProvider(env_id,
                                            fio_id)),
                 func=consume_fio_output,

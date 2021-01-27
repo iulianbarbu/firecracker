@@ -33,8 +33,7 @@ LATENCY = "latency"
 def pass_criteria():
     """Define pass criteria for the statistics."""
     return {
-        function.Avg.__name__: criteria.EqualWith(LATENCY_AVG_BASELINES[
-                                                      platform.machine()])
+        "Avg": criteria.EqualWith(LATENCY_AVG_BASELINES[platform.machine()])
     }
 
 
@@ -44,7 +43,7 @@ def measurements():
     # Add default statistics for "latency" measurement.
     latency = types.MeasurementDef.create_measurement(
         LATENCY,
-        "ms"
+        "ms",
         [function.ValuePlaceholder("Avg"),
          function.ValuePlaceholder("Min"),
          function.ValuePlaceholder("Max"),
@@ -53,11 +52,10 @@ def measurements():
          function.ValuePlaceholder("Percentile90"),
          function.ValuePlaceholder("Percentile50")],
         pass_criteria())
-    pkt_loss = types.MeasurementDef(
+    pkt_loss = types.MeasurementDef.create_measurement(
         PKT_LOSS,
-        "percentage"
-        [function.ValuePlaceholder(name=PKT_LOSS_STAT_KEY)]
-    )
+        "percentage",
+        [function.ValuePlaceholder(PKT_LOSS_STAT_KEY)])
 
     return [latency, pkt_loss]
 
